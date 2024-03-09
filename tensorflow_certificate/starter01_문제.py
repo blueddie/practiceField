@@ -24,8 +24,8 @@
 
 import numpy as np
 from keras.models import Sequential
-from keras.layers import Dense
 
+from keras.layers import Dense
 
 def solution_model():
     xs = np.array([-1.0, 0.0, 1.0, 2.0, 3.0, 4.0], dtype=float)
