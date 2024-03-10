@@ -252,7 +252,7 @@ EPOCHS = 1000 # 훈련 epoch 지정
 BATCH_SIZE = 8  # batch size 지정
 IMAGE_SIZE = (256, 256) # 이미지 크기 지정
 MODEL_NAME = 'psp' # 모델 이름
-RANDOM_STATE = 713 # seed 고정
+RANDOM_STATE = 443 # seed 고정
 INITIAL_EPOCH = 0 # 초기 epoch
 
 # 데이터 위치
