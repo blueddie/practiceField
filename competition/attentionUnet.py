@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 import keras
 from keras.optimizers import *
-from keras.callbacks import ModelCheckpoint, EarlyStopping
+from keras.callbacks import ModelCheckpoint, EarlyStopping,ReduceLROnPlateau
 from tensorflow.python.keras import backend as K
 import sys
 import pandas as pd
@@ -212,12 +212,12 @@ train_meta = pd.read_csv('C:\\_data\\dataset\\train_meta.csv')
 test_meta = pd.read_csv('C:\\_data\\dataset\\test_meta.csv')
 
 #  저장 이름
-save_name = 'attention_unet2'
+save_name = '0312_attunet'
 
-N_FILTERS = 16 # 필터수 지정
+N_FILTERS = 32 # 필터수 지정
 N_CHANNELS = 3 # channel 지정
 EPOCHS = 400 # 훈련 epoch 지정
-BATCH_SIZE = 20  # batch size 지정
+BATCH_SIZE = 32  # batch size 지정
 IMAGE_SIZE = (256, 256) # 이미지 크기 지정
 MODEL_NAME = 'attention' # 모델 이름
 RANDOM_STATE = 3144 # seed 고정
@@ -232,14 +232,14 @@ OUTPUT_DIR = 'C:\\_data\\dataset\\output\\'
 WORKERS = 16
 
 # 조기종료
-EARLY_STOP_PATIENCE = 30
+EARLY_STOP_PATIENCE = 20
 
 # 중간 가중치 저장 이름
 CHECKPOINT_PERIOD = 10
-CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}_attention2.hdf5'.format(MODEL_NAME, save_name)
+CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}.hdf5'.format(MODEL_NAME, save_name)
  
 # 최종 가중치 저장 이름
-FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_attention2.h5'.format(MODEL_NAME, save_name)
+FINAL_WEIGHTS_OUTPUT = 'model_{}_{}.h5'.format(MODEL_NAME, save_name)
 
 # 사용할 GPU 이름
 CUDA_DEVICE = 0
@@ -286,37 +286,45 @@ validation_generator = generator_from_lists(images_validation, masks_validation,
 # model.compile(optimizer = Adam(), loss = 'binary_crossentropy', metrics = ['accuracy'])
 # model.summary()
 
-model = get_attention_unet()
-# model = get_model(MODEL_NAME, nClasses=1, input_height=IMAGE_SIZE[0], input_width=IMAGE_SIZE[1], n_filters=N_FILTERS, n_channels=N_CHANNELS)
-model.compile(optimizer=Adam(), loss='binary_crossentropy', metrics=['accuracy', miou])
-model.summary()
 
+leraning_rate = 0.01
 # checkpoint 및 조기종료 설정
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
 # es = EarlyStopping(monitor='val_miou', mode='max', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
 checkpoint = ModelCheckpoint(os.path.join(OUTPUT_DIR, CHECKPOINT_MODEL_NAME), monitor='val_miou', verbose=1,
-save_best_only=True, mode='max', period=CHECKPOINT_PERIOD)
+save_best_only=True, mode='max')
 
+rlr = ReduceLROnPlateau(monitor='val_miou',             # 통상 early_stopping patience보다 작다
+                        patience=10,
+                        mode='max',
+                        verbose=1,
+                        factor=0.5,
+                        # 통상 디폴트보다 높게 잡는다?
+                        )
 # checkpoint = ModelCheckpoint(os.path.join(OUTPUT_DIR, CHECKPOINT_MODEL_NAME), monitor='loss', verbose=1,
 # save_best_only=True, mode='auto', period=CHECKPOINT_PERIOD)
 
-print('---model 훈련 시작---')
-history = model.fit_generator(
-    train_generator,
-    steps_per_epoch=len(images_train) // BATCH_SIZE,
-    validation_data=validation_generator,
-    validation_steps=len(images_validation) // BATCH_SIZE,
-    callbacks=[checkpoint, es],
-    epochs=EPOCHS,
-    workers=WORKERS,
-    initial_epoch=INITIAL_EPOCH
-)
-print('---model 훈련 종료---')
+model = get_attention_unet()
+# model = get_model(MODEL_NAME, nClasses=1, input_height=IMAGE_SIZE[0], input_width=IMAGE_SIZE[1], n_filters=N_FILTERS, n_channels=N_CHANNELS)
+model.compile(optimizer=Adam(learning_rate=leraning_rate), loss='binary_crossentropy', metrics=['accuracy', miou])
+model.summary()
+# print('---model 훈련 시작---')
+# history = model.fit_generator(
+#     train_generator,
+#     steps_per_epoch=len(images_train) // BATCH_SIZE,
+#     validation_data=validation_generator,
+#     validation_steps=len(images_validation) // BATCH_SIZE,
+#     callbacks=[checkpoint, es],
+#     epochs=EPOCHS,
+#     workers=WORKERS,
+#     initial_epoch=INITIAL_EPOCH
+# )
+# print('---model 훈련 종료---')
 
-print('가중치 저장')
-model_weights_output = os.path.join(OUTPUT_DIR, FINAL_WEIGHTS_OUTPUT)
-model.save_weights(model_weights_output)
-print("저장된 가중치 명: {}".format(model_weights_output))
+# print('가중치 저장')
+# model_weights_output = os.path.join(OUTPUT_DIR, FINAL_WEIGHTS_OUTPUT)
+# model.save_weights(model_weights_output)
+# print("저장된 가중치 명: {}".format(model_weights_output))
 
 
 # model = get_model(MODEL_NAME, input_height=IMAGE_SIZE[0], input_width=IMAGE_SIZE[1], n_filters=N_FILTERS, n_channels=N_CHANNELS)
@@ -325,19 +333,19 @@ print("저장된 가중치 명: {}".format(model_weights_output))
 
 
 
-# model.load_weights('C:\\_data\\dataset\\output\\model_attention_attention_unet_attention_03_11_02.h5')
+model.load_weights('C:\\_data\\dataset\\output\\checkpoint-attention-0312_attunet-epoch_54.hdf5')
 
 
-# y_pred_dict = {}
+y_pred_dict = {}
 
-# for i in test_meta['test_img']:
-#     img = get_img_762bands(f'C:\\_data\\dataset\\test_img\\{i}')
-#     y_pred = model.predict(np.array([img]), batch_size=1)
+for i in test_meta['test_img']:
+    img = get_img_762bands(f'C:\\_data\\dataset\\test_img\\{i}')
+    y_pred = model.predict(np.array([img]), batch_size=1)
     
-#     y_pred = np.where(y_pred[0, :, :, 0] > 0.25, 1, 0) # 임계값 처리
-#     y_pred = y_pred.astype(np.uint8)
-#     y_pred_dict[i] = y_pred
+    y_pred = np.where(y_pred[0, :, :, 0] > 0.25, 1, 0) # 임계값 처리
+    y_pred = y_pred.astype(np.uint8)
+    y_pred_dict[i] = y_pred
 
-# joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\y_pred_attentionTest.pkl')
+joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\y_pred_attentionTest.pkl')
 
-# print(y_pred_dict)
+print(y_pred_dict)
