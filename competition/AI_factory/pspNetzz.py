@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 import keras
 from keras.optimizers import *
-from keras.callbacks import ModelCheckpoint, EarlyStopping
+from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 from tensorflow.python.keras import backend as K
 import sys
 import pandas as pd
@@ -247,7 +247,7 @@ save_name = 'indian2'
 N_FILTERS = 16 # 필터수 지정
 N_CHANNELS = 3 # channel 지정
 EPOCHS = 200 # 훈련 epoch 지정
-BATCH_SIZE = 2  # batch size 지정
+BATCH_SIZE = 12  # batch size 지정
 IMAGE_SIZE = (256, 256) # 이미지 크기 지정
 MODEL_NAME = 'concat' # 모델 이름
 RANDOM_STATE = 3144 # seed 고정
@@ -318,45 +318,54 @@ validation_generator = generator_from_lists(images_validation, masks_validation,
 
 # model = get_attention_unet()
 # model = get_model(MODEL_NAME, nClasses=1, input_height=IMAGE_SIZE[0], input_width=IMAGE_SIZE[1], n_filters=N_FILTERS, n_channels=N_CHANNELS)
-model.compile(optimizer=Adam(), loss='binary_crossentropy', metrics=['accuracy', miou])
+learning_rate = 0.01
+model.compile(optimizer=Adam(learning_rate=learning_rate), loss='binary_crossentropy', metrics=['accuracy', miou])
 model.summary()
 
 # checkpoint 및 조기종료 설정
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
 # es = EarlyStopping(monitor='val_miou', mode='max', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
 checkpoint = ModelCheckpoint(os.path.join(OUTPUT_DIR, CHECKPOINT_MODEL_NAME), monitor='val_miou', verbose=1,
-save_best_only=True, mode='max', period=CHECKPOINT_PERIOD)
+save_best_only=True, mode='max')
 
-# print('---model 훈련 시작---')
-# history = model.fit_generator(
-#     train_generator,
-#     steps_per_epoch=len(images_train) // BATCH_SIZE,
-#     validation_data=validation_generator,
-#     validation_steps=len(images_validation) // BATCH_SIZE,
-#     callbacks=[checkpoint, es],
-#     epochs=EPOCHS,
-#     workers=WORKERS,
-#     initial_epoch=INITIAL_EPOCH
-# )
-# print('---model 훈련 종료---')
+rlr = ReduceLROnPlateau(monitor='val_miou',             # 통상 early_stopping patience보다 작다
+                        patience=20,
+                        mode='max',
+                        verbose=1,
+                        factor=0.5,
+                        # 통상 디폴트보다 높게 잡는다?
+                        )
 
-# print('가중치 저장')
-# model_weights_output = os.path.join(OUTPUT_DIR, FINAL_WEIGHTS_OUTPUT)
-# model.save_weights(model_weights_output)
-# print("저장된 가중치 명: {}".format(model_weights_output))
+print('---model 훈련 시작---')
+history = model.fit_generator(
+    train_generator,
+    steps_per_epoch=len(images_train) // BATCH_SIZE,
+    validation_data=validation_generator,
+    validation_steps=len(images_validation) // BATCH_SIZE,
+    callbacks=[checkpoint, es, rlr],
+    epochs=EPOCHS,
+    workers=WORKERS,
+    initial_epoch=INITIAL_EPOCH
+)
+print('---model 훈련 종료---')
 
-model.load_weights('C:\\_data\\dataset\\output\\checkpoint-concat-indian2-epoch_10indian2.hdf5')
+print('가중치 저장')
+model_weights_output = os.path.join(OUTPUT_DIR, FINAL_WEIGHTS_OUTPUT)
+model.save_weights(model_weights_output)
+print("저장된 가중치 명: {}".format(model_weights_output))
 
-y_pred_dict = {}
+# model.load_weights('C:\\_data\\dataset\\output\\checkpoint-concat-indian2-epoch_10indian2.hdf5')
 
-for i in test_meta['test_img']:
-    img = get_img_762bands(f'C:\\_data\\dataset\\test_img\\{i}')
-    y_pred = model.predict(np.array([img]), batch_size=1)
+# y_pred_dict = {}
+
+# for i in test_meta['test_img']:
+#     img = get_img_762bands(f'C:\\_data\\dataset\\test_img\\{i}')
+#     y_pred = model.predict(np.array([img]), batch_size=1)
     
-    y_pred = np.where(y_pred[0, :, :, 0] > 0.25, 1, 0) # 임계값 처리
-    y_pred = y_pred.astype(np.uint8)
-    y_pred_dict[i] = y_pred
+#     y_pred = np.where(y_pred[0, :, :, 0] > 0.25, 1, 0) # 임계값 처리
+#     y_pred = y_pred.astype(np.uint8)
+#     y_pred_dict[i] = y_pred
 
-joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\y_pred_0312.pkl')
+# joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\y_pred_0312.pkl')
 
-print(y_pred_dict)
+# print(y_pred_dict)
