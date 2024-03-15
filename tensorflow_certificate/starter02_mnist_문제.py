@@ -23,12 +23,32 @@
 #
 
 import tensorflow as tf
-
-
+from keras.models import Sequential
+from keras.layers import Dense, Conv2D, BatchNormalization, Dropout, Reshape, Input, Flatten
+import numpy as np
 def solution_model():
     mnist = tf.keras.datasets.mnist
-
+    
     # YOUR CODE HERE
+    (x_train,y_train), (x_test, y_test) = mnist.load_data()
+    # print(x_train.shape, y_train.shape) #(60000, 28, 28) (60000,)
+    # print(x_test.shape, y_test.shape)   #(10000, 28, 28) (10000,)
+    x_train = x_train / 255.0
+    x_test = x_test / 255.0
+    print(len(np.unique(y_train)))
+    model = Sequential()
+    model.add(Input(shape=(28,28)))
+    model.add(Reshape((28,28,1)))
+    model.add(Conv2D(32, kernel_size=(1,1), padding='same'))
+    model.add(Conv2D(16, (3,3)))
+    model.add(Conv2D(16, (3,3)))
+    model.add(Dropout(0.1))
+    model.add(BatchNormalization())
+    model.add(Flatten())
+    model.add(Dense(10, activation='softmax'))
+    # model.summary()
+    model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['acc'])
+    model.fit(x_train, y_train, batch_size=8, validation_data=(x_test, y_test), epochs=100)
     return model
 
 # Note that you'll need to save your model as a .h5 like this.
@@ -38,4 +58,4 @@ def solution_model():
 
 if __name__ == '__main__':
     model = solution_model()
-    model.save("mymodel.h5")
+    # model.save("mymodel.h5")

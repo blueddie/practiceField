@@ -23,6 +23,8 @@
 # an input shape of [1]
 
 import numpy as np
+from keras.models import Sequential
+from keras.layers import Dense
 
 
 def solution_model():
@@ -30,7 +32,14 @@ def solution_model():
     ys = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], dtype=float)
 
     # YOUR CODE HERE
-
+    model = Sequential()
+    model.add(Dense(16, input_shape=(1,)))
+    model.add(Dense(8))
+    model.add(Dense(4))
+    model.add(Dense(1))
+    
+    model.compile(loss='mse', optimizer='adam')
+    model.fit(xs, ys, batch_size=1, epochs=100)
     return model
 
 
@@ -40,4 +49,4 @@ def solution_model():
 # and the score will be returned to you.
 if __name__ == '__main__':
     model = solution_model()
-    model.save("mymodel.h5")
+    # model.save("mymodel.h5")

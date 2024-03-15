@@ -336,36 +336,36 @@ rlr = ReduceLROnPlateau(monitor='val_miou',             # 통상 early_stopping 
                         # 통상 디폴트보다 높게 잡는다?
                         )
 
-print('---model 훈련 시작---')
-history = model.fit_generator(
-    train_generator,
-    steps_per_epoch=len(images_train) // BATCH_SIZE,
-    validation_data=validation_generator,
-    validation_steps=len(images_validation) // BATCH_SIZE,
-    callbacks=[checkpoint, es, rlr],
-    epochs=EPOCHS,
-    workers=WORKERS,
-    initial_epoch=INITIAL_EPOCH
-)
-print('---model 훈련 종료---')
+# print('---model 훈련 시작---')
+# history = model.fit_generator(
+#     train_generator,
+#     steps_per_epoch=len(images_train) // BATCH_SIZE,
+#     validation_data=validation_generator,
+#     validation_steps=len(images_validation) // BATCH_SIZE,
+#     callbacks=[checkpoint, es, rlr],
+#     epochs=EPOCHS,
+#     workers=WORKERS,
+#     initial_epoch=INITIAL_EPOCH
+# )
+# print('---model 훈련 종료---')
 
-print('가중치 저장')
-model_weights_output = os.path.join(OUTPUT_DIR, FINAL_WEIGHTS_OUTPUT)
-model.save_weights(model_weights_output)
-print("저장된 가중치 명: {}".format(model_weights_output))
+# print('가중치 저장')
+# model_weights_output = os.path.join(OUTPUT_DIR, FINAL_WEIGHTS_OUTPUT)
+# model.save_weights(model_weights_output)
+# print("저장된 가중치 명: {}".format(model_weights_output))
 
-# model.load_weights('C:\\_data\\dataset\\output\\checkpoint-concat-indian2-epoch_10indian2.hdf5')
+model.load_weights('C:\\_data\\dataset\\output\\test.hdf5')
 
-# y_pred_dict = {}
+y_pred_dict = {}
 
-# for i in test_meta['test_img']:
-#     img = get_img_762bands(f'C:\\_data\\dataset\\test_img\\{i}')
-#     y_pred = model.predict(np.array([img]), batch_size=1)
+for i in test_meta['test_img']:
+    img = get_img_762bands(f'C:\\_data\\dataset\\test_img\\{i}')
+    y_pred = model.predict(np.array([img]), batch_size=1)
     
-#     y_pred = np.where(y_pred[0, :, :, 0] > 0.25, 1, 0) # 임계값 처리
-#     y_pred = y_pred.astype(np.uint8)
-#     y_pred_dict[i] = y_pred
+    y_pred = np.where(y_pred[0, :, :, 0] > 0.25, 1, 0) # 임계값 처리
+    y_pred = y_pred.astype(np.uint8)
+    y_pred_dict[i] = y_pred
 
-# joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\y_pred_0312.pkl')
+joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\0315fuk.pkl')
 
-# print(y_pred_dict)
+print(y_pred_dict)

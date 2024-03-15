@@ -34,7 +34,35 @@ def solution_model():
 
     with open("bbc-text.csv", 'r') as csvfile:
         # YOUR CODE HERE
-
+        csv_reader = csv.reader(csvfile)
+        next(csv_reader)  # 첫 번째 줄은 헤더이므로 건너뜁니다.
+        for row in csv_reader:
+            sentences.append(row[1])
+            labels.append(row[0]) 
+            
+    print(np.unique(labels))
+    
+    token = Tokenizer(num_words=vocab_size, oov_token=oov_tok)
+    token.fit_on_texts(sentences)
+    sequences = token.texts_to_sequences(sentences)
+    
+    padded_x = pad_sequences(sequences, maxlen=max_length, padding=padding_type, truncating=trunc_type)
+    
+    labels_mapping = {
+        'UNUSED' : 0,
+        'sport': 1,
+        'business': 2,
+        'politics': 3,
+        'tech': 4,
+        'entertainment': 5
+    }
+    
+    encoded_labels = [labels_mapping[label] for label in labels]
+    encoded_labels = np.array(encoded_labels)
+    # print(np.unique(encoded_labels))
+    
+    # print(encoded_labels)
+    # print(padded_x)
     model = tf.keras.Sequential([
     # YOUR CODE HERE
     # PLEASE NOTE -- WHILE THERE ARE 5 CATEGORIES, THEY ARE NUMBERED 1 THROUGH 5 IN THE DATASET
@@ -47,10 +75,16 @@ def solution_model():
     # 3 = POLITICS
     # 4 = TECH
     # 5 = ENTERTAINMENT
+        tf.keras.layers.Embedding(input_dim=vocab_size, output_dim=embedding_dim, input_length=max_length),
+        tf.keras.layers.LSTM(10, activation='relu'),
+        tf.keras.layers.Dense(7, activation='relu'),
         tf.keras.layers.Dense(6, activation='softmax')
     ])
-
-    # YOUR CODE HERE
+    # model.summary()
+    model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['acc'])
+    model.fit(padded_x, encoded_labels, batch_size=16, epochs=100)
+    
+    # # YOUR CODE HERE
     return model
 
 
@@ -59,4 +93,4 @@ def solution_model():
 # and a score will be returned to you
 if __name__ == '__main__':
     model = solution_model()
-    model.save("mymodel.h5")
+    # model.save("mymodel.h5")

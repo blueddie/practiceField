@@ -29,13 +29,13 @@ data = tfds.load("iris", split='train')
 def preprocess(features):
     # YOUR CODE HERE
     # Should return features and one-hot encoded labels
-    return f,l
+    # return f,l
 
 def solution_model():
     train_dataset = data.map(preprocess).batch(10)
 
     # YOUR CODE TO TRAIN A MODEL HERE
-    return model
+    # return model
 
 
 # Note that you'll need to save your model as a .h5 like this.
@@ -44,5 +44,5 @@ def solution_model():
 # and the score will be returned to you.
 if __name__ == '__main__':
     model = solution_model()
-    model.save("mymodel.h5")
+    # model.save("mymodel.h5")
 

@@ -34,7 +34,8 @@ import urllib.request
 import zipfile
 import tensorflow as tf
 from keras_preprocessing.image import ImageDataGenerator
-
+import numpy as np
+from keras.callbacks import EarlyStopping
 def solution_model():
     url = 'https://storage.googleapis.com/download.tensorflow.org/data/rps.zip'
     urllib.request.urlretrieve(url, 'rps.zip')
@@ -45,17 +46,47 @@ def solution_model():
 
 
     TRAINING_DIR = "tmp/rps/"
+    
     training_datagen = ImageDataGenerator(
+        
     # YOUR CODE HERE)
-
-    train_generator = # YOUR CODE HERE
-
+        rescale=1/255.0
+    )
+    
+    train_generator = training_datagen.flow_from_directory(
+        # YOUR CODE HERE
+        TRAINING_DIR,
+        target_size=(150,150),
+        batch_size=32,
+        class_mode='categorical',
+        color_mode='rgb',
+        shuffle='True'
+        )
+    
+    x_train = []
+    y_train = []
+    for i in range(len(train_generator)):
+        images, labels = train_generator.next()
+        x_train.append(images)
+        y_train.append(labels)
+    
+    x_train = np.concatenate(x_train, axis=0)
+    y_train = np.concatenate(y_train, axis=0)
+    
 
     model = tf.keras.models.Sequential([
+        tf.keras.layers.Conv2D(16, (3,3), input_shape=(150, 150, 3), activation='relu'),
+        tf.keras.layers.Conv2D(16, (3,3)),
+        # tf.keras.layers.Dropout(0.1),
+        tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.Flatten(),
     # YOUR CODE HERE, BUT END WITH A 3 Neuron Dense, activated by softmax
         tf.keras.layers.Dense(3, activation='softmax')
     ])
-
+    
+    model.compile(loss='categorical_crossentropy', optimizer= 'adam', metrics=['acc'])
+    model.fit(x_train, y_train, validation_split=0.2, batch_size=8, epochs=100)
+    
     return model
 
 
@@ -65,4 +96,4 @@ def solution_model():
 # and the score will be returned to you.
 if __name__ == '__main__':
     model = solution_model()
-    model.save("mymodel.h5")
+    # model.save("mymodel.h5")

@@ -42,14 +42,16 @@ def solution_model():
 
     train_datagen = ImageDataGenerator(
         #Your code here. Should at least have a rescale. Other parameters can help with overfitting.)
-
+    )
     validation_datagen = ImageDataGenerator(#Your Code here)
 
+    )
     train_generator = train_datagen.flow_from_directory(
         #Your Code Here)
-
+    )
     validation_generator = validation_datagen.flow_from_directory(
         #Your Code Here)
+    )
 
 
     model = tf.keras.models.Sequential([
@@ -63,9 +65,9 @@ def solution_model():
 
 
     model.compile(#Your Code Here#)
-
+    )
     model.fit(#Your Code Here#)
-
+    )
     # NOTE: If training is taking a very long time, you should consider setting the batch size
     # appropriately on the generator, and the steps per epoch in the model.fit() function.
 
@@ -75,4 +77,4 @@ def solution_model():
 # and the score will be returned to you.
 if __name__ == '__main__':
     model = solution_model()
-    model.save("mymodel.h5")
+    # model.save("mymodel.h5")
