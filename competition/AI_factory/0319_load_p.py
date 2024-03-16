@@ -238,8 +238,8 @@ input_shape = (256, 256, 3)  # Replace height, width, and channels with actual v
 
 # Build the model
 model = build_model(input_shape)
-model.load_weights('C:\\_data\\dataset\\output\\model_concat_indian0318_indian0319Swi.h5')
 model.summary()
+model.load_weights('C:\\_data\\dataset\\output\\model_concat_indian0318_indian0319Swi.h5')
 
 # # 두 샘플 간의 유사성 metric
 # def dice_coef(y_true, y_pred, smooth=1):
