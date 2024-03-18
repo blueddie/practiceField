@@ -34,6 +34,7 @@ from keras.layers import *
 import numpy as np
 from keras import backend as K
 from sklearn.model_selection import train_test_split
+import segmentation_models as sm
 import joblib
 tf.random.set_seed(3)
 np.random.seed(3)
@@ -242,15 +243,15 @@ train_meta = pd.read_csv('C:\\_data\\dataset\\train_meta.csv')
 test_meta = pd.read_csv('C:\\_data\\dataset\\test_meta.csv')
 
 #  저장 이름
-save_name = 'indian2'
+save_name = 'indian0318'
 
-N_FILTERS = 16 # 필터수 지정
+N_FILTERS = 22 # 필터수 지정
 N_CHANNELS = 3 # channel 지정
-EPOCHS = 200 # 훈련 epoch 지정
+EPOCHS = 1000 # 훈련 epoch 지정
 BATCH_SIZE = 12  # batch size 지정
 IMAGE_SIZE = (256, 256) # 이미지 크기 지정
 MODEL_NAME = 'concat' # 모델 이름
-RANDOM_STATE = 3144 # seed 고정
+RANDOM_STATE = 3812 # seed 고정
 INITIAL_EPOCH = 0 # 초기 epoch
 
 # 데이터 위치
@@ -259,18 +260,18 @@ MASKS_PATH = 'C:\\_data\\dataset\\train_mask\\'
 
 # 가중치 저장 위치
 OUTPUT_DIR = 'C:\\_data\\dataset\\output\\'
-WORKERS = 16
+WORKERS = 18
 
 # 조기종료
-EARLY_STOP_PATIENCE = 40
+EARLY_STOP_PATIENCE = 50
 
 
 # 중간 가중치 저장 이름
 CHECKPOINT_PERIOD = 10
-CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}indian2.hdf5'.format(MODEL_NAME, save_name)
+CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}indian0318.hdf5'.format(MODEL_NAME, save_name)
  
 # 최종 가중치 저장 이름
-FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_indian2.h5'.format(MODEL_NAME, save_name)
+FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_indian0318.h5'.format(MODEL_NAME, save_name)
 
 # 사용할 GPU 이름
 CUDA_DEVICE = 0
@@ -297,7 +298,7 @@ except:
 
 
 # train : val = 8 : 2 나누기
-x_tr, x_val = train_test_split(train_meta, test_size=0.2, random_state=RANDOM_STATE)
+x_tr, x_val = train_test_split(train_meta, test_size=0.15, random_state=RANDOM_STATE)
 print(len(x_tr), len(x_val))
 
 # train : val 지정 및 generator
@@ -319,53 +320,53 @@ validation_generator = generator_from_lists(images_validation, masks_validation,
 # model = get_attention_unet()
 # model = get_model(MODEL_NAME, nClasses=1, input_height=IMAGE_SIZE[0], input_width=IMAGE_SIZE[1], n_filters=N_FILTERS, n_channels=N_CHANNELS)
 learning_rate = 0.01
-model.compile(optimizer=Adam(learning_rate=learning_rate), loss='binary_crossentropy', metrics=['accuracy', miou])
+model.compile(optimizer=Adam(learning_rate=learning_rate), loss=sm.losses.bce_jaccard_loss, metrics=['accuracy', miou])
 model.summary()
 
 # checkpoint 및 조기종료 설정
-es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
+es = EarlyStopping(monitor='val_miou', mode='max', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
 # es = EarlyStopping(monitor='val_miou', mode='max', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
 checkpoint = ModelCheckpoint(os.path.join(OUTPUT_DIR, CHECKPOINT_MODEL_NAME), monitor='val_miou', verbose=1,
 save_best_only=True, mode='max')
 
 rlr = ReduceLROnPlateau(monitor='val_miou',             # 통상 early_stopping patience보다 작다
-                        patience=20,
+                        patience=25,
                         mode='max',
                         verbose=1,
-                        factor=0.5,
+                        factor=0.3,
                         # 통상 디폴트보다 높게 잡는다?
                         )
 
-# print('---model 훈련 시작---')
-# history = model.fit_generator(
-#     train_generator,
-#     steps_per_epoch=len(images_train) // BATCH_SIZE,
-#     validation_data=validation_generator,
-#     validation_steps=len(images_validation) // BATCH_SIZE,
-#     callbacks=[checkpoint, es, rlr],
-#     epochs=EPOCHS,
-#     workers=WORKERS,
-#     initial_epoch=INITIAL_EPOCH
-# )
-# print('---model 훈련 종료---')
+print('---model 훈련 시작---')
+history = model.fit_generator(
+    train_generator,
+    steps_per_epoch=len(images_train) // BATCH_SIZE,
+    validation_data=validation_generator,
+    validation_steps=len(images_validation) // BATCH_SIZE,
+    callbacks=[checkpoint, es, rlr],
+    epochs=EPOCHS,
+    workers=WORKERS,
+    initial_epoch=INITIAL_EPOCH
+)
+print('---model 훈련 종료---')
 
-# print('가중치 저장')
-# model_weights_output = os.path.join(OUTPUT_DIR, FINAL_WEIGHTS_OUTPUT)
-# model.save_weights(model_weights_output)
-# print("저장된 가중치 명: {}".format(model_weights_output))
+print('가중치 저장')
+model_weights_output = os.path.join(OUTPUT_DIR, FINAL_WEIGHTS_OUTPUT)
+model.save_weights(model_weights_output)
+print("저장된 가중치 명: {}".format(model_weights_output))
 
-model.load_weights('C:\\_data\\dataset\\output\\test.hdf5')
+# model.load_weights('C:\\_data\\dataset\\output\\checkpoint-concat-indian2-epoch_80indian0316_2.hdf5')
 
-y_pred_dict = {}
+# y_pred_dict = {}
 
-for i in test_meta['test_img']:
-    img = get_img_762bands(f'C:\\_data\\dataset\\test_img\\{i}')
-    y_pred = model.predict(np.array([img]), batch_size=1)
+# for i in test_meta['test_img']:
+#     img = get_img_762bands(f'C:\\_data\\dataset\\test_img\\{i}')
+#     y_pred = model.predict(np.array([img]), batch_size=1)
     
-    y_pred = np.where(y_pred[0, :, :, 0] > 0.25, 1, 0) # 임계값 처리
-    y_pred = y_pred.astype(np.uint8)
-    y_pred_dict[i] = y_pred
+#     y_pred = np.where(y_pred[0, :, :, 0] > 0.26, 1, 0) # 임계값 처리
+#     y_pred = y_pred.astype(np.uint8)
+#     y_pred_dict[i] = y_pred
 
-joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\0315fuk.pkl')
+# joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\0318.pkl')
 
-print(y_pred_dict)
+# print(y_pred_dict)
