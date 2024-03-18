@@ -24,6 +24,7 @@ import json
 import tensorflow as tf
 import numpy as np
 import urllib
+import csv
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
@@ -44,13 +45,22 @@ def solution_model():
     sentences = []
     labels = []
     # YOUR CODE HERE
+    with open("sarcasm.json", 'r') as f:
+        datastore = json.load(f)
+        
+    for item in datastore:
+        sentences.append(item['headline'])
+        labels.append(item['is_sarcastic'])
+    print("--------------------------")
+    print(sentences[1])
+    print("--------------------------")
 
 
     model = tf.keras.Sequential([
     # YOUR CODE HERE. KEEP THIS OUTPUT LAYER INTACT OR TESTS MAY FAIL
         tf.keras.layers.Dense(1, activation='sigmoid')
     ])
-    return model
+    # return model
 
 
 # Note that you'll need to save your model as a .h5 like this.
@@ -59,4 +69,4 @@ def solution_model():
 # and the score will be returned to you.
 if __name__ == '__main__':
     model = solution_model()
-    model.save("mymodel.h5")
+    # model.save("mymodel.h5")

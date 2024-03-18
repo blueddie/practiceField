@@ -30,16 +30,16 @@ y_train = data['login']
 # }
 
 param_search_space = {
-    'n_estimators': [100, 200, 300],
+    'n_estimators': [100, 200],
     'criterion': ['gini', 'entropy'],
-    'max_depth': [10, 20, 12, 7],
-    'min_samples_split': [2, 5],
-    'min_samples_leaf': [1, 2],
+    'max_depth': [10, 20, 12, 7, 13],
+    'min_samples_split': [2, 5, 6],
+    'min_samples_leaf': [1, 2, 3, 4],
     'min_weight_fraction_leaf': [0.0, 0.1],
     # 'max_features': ['auto'],
     'max_leaf_nodes': [None, 10, 20],
-    'min_impurity_decrease': [0.0, 0.1],
-    'bootstrap': [True]
+    # 'min_impurity_decrease': [0.0, 0.1],
+    # 'bootstrap': [True]
 }
 
 # RandomForestClassifier 객체 생성
@@ -73,4 +73,4 @@ for param, value in best_params.items():
     if param in submit.columns:
         submit[param] = value
 
-submit.to_csv('C:\\_data\\dacon\\rf\\submitTest0313_grid.csv', index=False)
+submit.to_csv('C:\\_data\\dacon\\rf\\submitTest0318_grid.csv', index=False)
