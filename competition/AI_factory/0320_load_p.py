@@ -74,7 +74,9 @@ def get_img_762bands(path):
     img = np.float32(img)/MAX_PIXEL_VALUE
     
     return img
-    
+
+
+
 def get_mask_arr(path):
     img = rasterio.open(path).read().transpose((1, 2, 0))
     seg = np.float32(img)
@@ -129,33 +131,52 @@ def generator_from_lists(images_path, masks_path, batch_size=32, shuffle = True,
                 images = []
                 masks = []
 
-def conv_block(X,filters,block):
-    # resiudal block with dilated convolutions
-    # add skip connection at last after doing convoluion operation to input X
+###########################################################################
+
+from keras.layers import Layer
+import keras.backend as K
+class SwishActivation(Layer):
+    def __init__(self, **kwargs):
+        super(SwishActivation, self).__init__(**kwargs)
+
+    def call(self, inputs):
+        return inputs * K.sigmoid(inputs)
+
+    def get_config(self):
+        config = super().get_config()
+        return config
     
-    b = 'block_'+str(block)+'_'
-    f1,f2,f3 = filters
+# conv_block 함수 내에서 SwishActivation을 사용하는 방법
+from keras.layers import Add, Conv2D, BatchNormalization, ReLU
+
+
+def conv_block(X, filters, block):
+    # Residual block with dilated convolutions
+    # Add skip connection at last after doing convolution operation to input X
+
+    b = 'block_' + str(block) + '_'
+    f1, f2, f3 = filters
     X_skip = X
     # block_a
-    X = Convolution2D(filters=f1,kernel_size=(1,1),dilation_rate=(1,1),
-                      padding='same',kernel_initializer='he_normal',name=b+'a')(X)
-    X = BatchNormalization(name=b+'batch_norm_a')(X)
-    X = LeakyReLU(alpha=0.2,name=b+'leakyrelu_a')(X)
+    X = Conv2D(filters=f1, kernel_size=(1, 1), dilation_rate=(1, 1),
+               padding='same', kernel_initializer='he_normal', name=b + 'a')(X)
+    X = BatchNormalization(name=b + 'batch_norm_a')(X)
+    X = SwishActivation(name=b + 'swish_activation_a')(X)
     # block_b
-    X = Convolution2D(filters=f2,kernel_size=(3,3),dilation_rate=(2,2),
-                      padding='same',kernel_initializer='he_normal',name=b+'b')(X)
-    X = BatchNormalization(name=b+'batch_norm_b')(X)
-    X = LeakyReLU(alpha=0.2,name=b+'leakyrelu_b')(X)
+    X = Conv2D(filters=f2, kernel_size=(3, 3), dilation_rate=(2, 2),
+               padding='same', kernel_initializer='he_normal', name=b + 'b')(X)
+    X = BatchNormalization(name=b + 'batch_norm_b')(X)
+    X = SwishActivation(name=b + 'swish_activation_b')(X)
     # block_c
-    X = Convolution2D(filters=f3,kernel_size=(1,1),dilation_rate=(1,1),
-                      padding='same',kernel_initializer='he_normal',name=b+'c')(X)
-    X = BatchNormalization(name=b+'batch_norm_c')(X)
+    X = Conv2D(filters=f3, kernel_size=(1, 1), dilation_rate=(1, 1),
+               padding='same', kernel_initializer='he_normal', name=b + 'c')(X)
+    X = BatchNormalization(name=b + 'batch_norm_c')(X)
     # skip_conv
-    X_skip = Convolution2D(filters=f3,kernel_size=(3,3),padding='same',name=b+'skip_conv')(X_skip)
-    X_skip = BatchNormalization(name=b+'batch_norm_skip_conv')(X_skip)
+    X_skip = Conv2D(filters=f3, kernel_size=(3, 3), padding='same', name=b + 'skip_conv')(X_skip)
+    X_skip = BatchNormalization(name=b + 'batch_norm_skip_conv')(X_skip)
     # block_c + skip_conv
-    X = Add(name=b+'add')([X,X_skip])
-    X = ReLU(name=b+'relu')(X)
+    X = Add(name=b + 'add')([X, X_skip])
+    X = ReLU(name=b + 'relu')(X)
     return X
     
 def base_feature_maps(input_layer):
@@ -217,6 +238,7 @@ input_shape = (256, 256, 3)  # Replace height, width, and channels with actual v
 
 # Build the model
 model = build_model(input_shape)
+model.load_weights('C:\\_data\\dataset\\output\\model_concat_indian0318_indian0319Swi.h5')
 model.summary()
 
 # # 두 샘플 간의 유사성 metric
@@ -243,7 +265,7 @@ train_meta = pd.read_csv('C:\\_data\\dataset\\train_meta.csv')
 test_meta = pd.read_csv('C:\\_data\\dataset\\test_meta.csv')
 
 #  저장 이름
-save_name = 'indian0318'
+save_name = 'indian0320_2'
 
 N_FILTERS = 22 # 필터수 지정
 N_CHANNELS = 3 # channel 지정
@@ -260,18 +282,18 @@ MASKS_PATH = 'C:\\_data\\dataset\\train_mask\\'
 
 # 가중치 저장 위치
 OUTPUT_DIR = 'C:\\_data\\dataset\\output\\'
-WORKERS = 18
+WORKERS = 20
 
 # 조기종료
-EARLY_STOP_PATIENCE = 50
+EARLY_STOP_PATIENCE = 21
 
 
 # 중간 가중치 저장 이름
 CHECKPOINT_PERIOD = 10
-CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}indian0318.hdf5'.format(MODEL_NAME, save_name)
+CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}indian0320Swi.hdf5'.format(MODEL_NAME, save_name)
  
 # 최종 가중치 저장 이름
-FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_indian0318.h5'.format(MODEL_NAME, save_name)
+FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_indian0320Swi.h5'.format(MODEL_NAME, save_name)
 
 # 사용할 GPU 이름
 CUDA_DEVICE = 0
@@ -319,7 +341,7 @@ validation_generator = generator_from_lists(images_validation, masks_validation,
 
 # model = get_attention_unet()
 # model = get_model(MODEL_NAME, nClasses=1, input_height=IMAGE_SIZE[0], input_width=IMAGE_SIZE[1], n_filters=N_FILTERS, n_channels=N_CHANNELS)
-learning_rate = 0.01
+learning_rate = 0.0005
 model.compile(optimizer=Adam(learning_rate=learning_rate), loss=sm.losses.bce_jaccard_loss, metrics=['accuracy', miou])
 model.summary()
 
@@ -330,10 +352,10 @@ checkpoint = ModelCheckpoint(os.path.join(OUTPUT_DIR, CHECKPOINT_MODEL_NAME), mo
 save_best_only=True, mode='max')
 
 rlr = ReduceLROnPlateau(monitor='val_miou',             # 통상 early_stopping patience보다 작다
-                        patience=25,
+                        patience=10,
                         mode='max',
                         verbose=1,
-                        factor=0.3,
+                        factor=0.5,
                         # 통상 디폴트보다 높게 잡는다?
                         )
 
@@ -355,7 +377,7 @@ model_weights_output = os.path.join(OUTPUT_DIR, FINAL_WEIGHTS_OUTPUT)
 model.save_weights(model_weights_output)
 print("저장된 가중치 명: {}".format(model_weights_output))
 
-# model.load_weights('C:\\_data\\dataset\\output\\checkpoint-concat-indian2-epoch_80indian0316_2.hdf5')
+# model.load_weights('C:\\_data\\dataset\\output\\model_concat_indian0318_indian0319Swi.h5')
 
 # y_pred_dict = {}
 
@@ -363,10 +385,10 @@ print("저장된 가중치 명: {}".format(model_weights_output))
 #     img = get_img_762bands(f'C:\\_data\\dataset\\test_img\\{i}')
 #     y_pred = model.predict(np.array([img]), batch_size=1)
     
-#     y_pred = np.where(y_pred[0, :, :, 0] > 0.26, 1, 0) # 임계값 처리
+#     y_pred = np.where(y_pred[0, :, :, 0] > 0.23, 1, 0) # 임계값 처리
 #     y_pred = y_pred.astype(np.uint8)
 #     y_pred_dict[i] = y_pred
 
-# joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\0318.pkl')
+# joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\03200759.pkl')
 
 # print(y_pred_dict)
