@@ -176,7 +176,7 @@ def conv_block(X, filters, block):
     X_skip = BatchNormalization(name=b + 'batch_norm_skip_conv')(X_skip)
     # block_c + skip_conv
     X = Add(name=b + 'add')([X, X_skip])
-    X = ReLU(name=b + 'relu')(X)
+    X = SwishActivation(name=b + 'relu')(X)
     return X
     
 def base_feature_maps(input_layer):
@@ -197,19 +197,19 @@ def pyramid_feature_maps(input_layer):
     # red
     red = GlobalAveragePooling2D(name='red_pool')(base)
     red = tf.keras.layers.Reshape((1,1,256))(red)
-    red = Convolution2D(filters=64,kernel_size=(1,1),name='red_1_by_1')(red)
+    red = Convolution2D(filters=16,kernel_size=(1,1),name='red_1_by_1')(red)
     red = UpSampling2D(size=256,interpolation='bilinear',name='red_upsampling')(red)
     # yellow
-    yellow = MaxPooling2D(pool_size=(2,2),name='yellow_pool')(base)
-    yellow = Convolution2D(filters=64,kernel_size=(1,1),name='yellow_1_by_1')(yellow)
+    yellow = AveragePooling2D(pool_size=(2,2),name='yellow_pool')(base)
+    yellow = Convolution2D(filters=16,kernel_size=(1,1),name='yellow_1_by_1')(yellow)
     yellow = UpSampling2D(size=2,interpolation='bilinear',name='yellow_upsampling')(yellow)
     # blue
-    blue = MaxPooling2D(pool_size=(4,4),name='blue_pool')(base)
-    blue = Convolution2D(filters=64,kernel_size=(1,1),name='blue_1_by_1')(blue)
+    blue = AveragePooling2D(pool_size=(4,4),name='blue_pool')(base)
+    blue = Convolution2D(filters=16,kernel_size=(1,1),name='blue_1_by_1')(blue)
     blue = UpSampling2D(size=4,interpolation='bilinear',name='blue_upsampling')(blue)
     # green
-    green = MaxPooling2D(pool_size=(8,8),name='green_pool')(base)
-    green = Convolution2D(filters=64,kernel_size=(1,1),name='green_1_by_1')(green)
+    green = AveragePooling2D(pool_size=(8,8),name='green_pool')(base)
+    green = Convolution2D(filters=16,kernel_size=(1,1),name='green_1_by_1')(green)
     green = UpSampling2D(size=8,interpolation='bilinear',name='green_upsampling')(green)
     # base + red + yellow + blue + green
     return tf.keras.layers.concatenate([base,red,yellow,blue,green])
@@ -239,6 +239,7 @@ input_shape = (256, 256, 3)  # Replace height, width, and channels with actual v
 # Build the model
 model = build_model(input_shape)
 model.summary()
+model.load_weights('C:\\_data\\dataset\\output\\checkpoint-concat-indian0320-epoch_02indian0320Swi.hdf5')
 
 # # 두 샘플 간의 유사성 metric
 # def dice_coef(y_true, y_pred, smooth=1):
@@ -264,15 +265,15 @@ train_meta = pd.read_csv('C:\\_data\\dataset\\train_meta.csv')
 test_meta = pd.read_csv('C:\\_data\\dataset\\test_meta.csv')
 
 #  저장 이름
-save_name = 'indian0321_band652'
+save_name = 'indian0320'
 
 N_FILTERS = 22 # 필터수 지정
 N_CHANNELS = 3 # channel 지정
 EPOCHS = 1000 # 훈련 epoch 지정
 BATCH_SIZE = 12  # batch size 지정
-IMAGE_SIZE = (256, 256) # 이미지 크기 지정
+IMAGE_SIZE = (256, 256) # 이미지 크기 지정` `
 MODEL_NAME = 'concat' # 모델 이름
-RANDOM_STATE = 42 # seed 고정
+RANDOM_STATE = 66743 # seed 고정
 INITIAL_EPOCH = 0 # 초기 epoch
 
 # 데이터 위치
@@ -289,10 +290,10 @@ EARLY_STOP_PATIENCE = 17
 
 # 중간 가중치 저장 이름
 CHECKPOINT_PERIOD = 10
-CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}indian0321_band_652.hdf5'.format(MODEL_NAME, save_name)
+CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}indian0320SwiLoad찐찐.hdf5'.format(MODEL_NAME, save_name)
  
 # 최종 가중치 저장 이름
-FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_indian0321_band_652.h5'.format(MODEL_NAME, save_name)
+FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_indian0320SwiLoad찐찐.h5'.format(MODEL_NAME, save_name)
 
 # 사용할 GPU 이름
 CUDA_DEVICE = 0
@@ -340,23 +341,21 @@ validation_generator = generator_from_lists(images_validation, masks_validation,
 
 # model = get_attention_unet()
 # model = get_model(MODEL_NAME, nClasses=1, input_height=IMAGE_SIZE[0], input_width=IMAGE_SIZE[1], n_filters=N_FILTERS, n_channels=N_CHANNELS)
-learning_rate = 0.001
-model.load_weights('C:\\_data\\dataset\\output\\checkpoint-concat-indian0321_band652-epoch_01indian0321_band_652.hdf5')
-
-model.compile(optimizer=Adam(learning_rate=learning_rate), loss=sm.losses.bce_jaccard_loss, metrics=['accuracy', miou, sm.metrics.iou_score])
+learning_rate = 0.003
+model.compile(optimizer=Adam(learning_rate=learning_rate), loss=sm.losses.binary_focal_dice_loss, metrics=['accuracy', miou, sm.metrics.iou_score])
 model.summary()
 
 # checkpoint 및 조기종료 설정
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
 # es = EarlyStopping(monitor='val_miou', mode='max', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
 checkpoint = ModelCheckpoint(os.path.join(OUTPUT_DIR, CHECKPOINT_MODEL_NAME), monitor='val_loss', verbose=1,
-save_best_only=True, mode='val_loss')
+save_best_only=True, mode='min')
 
 rlr = ReduceLROnPlateau(monitor='val_loss',             # 통상 early_stopping patience보다 작다
-                        patience=2,
+                        patience=5,
                         mode='min',
                         verbose=1,
-                        factor=0.95,
+                        factor=0.5,
                         # 통상 디폴트보다 높게 잡는다?
                         )
 
@@ -378,7 +377,7 @@ model_weights_output = os.path.join(OUTPUT_DIR, FINAL_WEIGHTS_OUTPUT)
 model.save_weights(model_weights_output)
 print("저장된 가중치 명: {}".format(model_weights_output))
 
-# model.load_weights('C:\\_data\\dataset\\output\\model_concat_indian0320_indian0320SwiLoad찐찐.h5')
+# model.load_weights('C:\\_data\\dataset\\output\\model_concat_indian0318_indian0319Swi.h5')
 
 # y_pred_dict = {}
 
@@ -386,10 +385,10 @@ print("저장된 가중치 명: {}".format(model_weights_output))
 #     img = get_img_762bands(f'C:\\_data\\dataset\\test_img\\{i}')
 #     y_pred = model.predict(np.array([img]), batch_size=1)
     
-#     y_pred = np.where(y_pred[0, :, :, 0] > 0.20, 1, 0) # 임계값 처리
+#     y_pred = np.where(y_pred[0, :, :, 0] > 0.23, 1, 0) # 임계값 처리
 #     y_pred = y_pred.astype(np.uint8)
 #     y_pred_dict[i] = y_pred
 
-# joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\0320찐찐짜라.pkl')
+# joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\03200759.pkl')
 
 # print(y_pred_dict)
