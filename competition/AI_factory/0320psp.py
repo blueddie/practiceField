@@ -70,7 +70,7 @@ def get_img_arr(path):
     return img
 
 def get_img_762bands(path):
-    img = rasterio.open(path).read((7,6,2)).transpose((1, 2, 0))    
+    img = rasterio.open(path).read((7,6,5)).transpose((1, 2, 0))    
     img = np.float32(img)/MAX_PIXEL_VALUE
     
     return img
@@ -216,7 +216,7 @@ def pyramid_feature_maps(input_layer):
 
 def last_conv_module(input_layer):
     X = pyramid_feature_maps(input_layer)
-    X = Convolution2D(filters=1,kernel_size=3,padding='same',name='last_conv_3_by_3')(X)
+    X = Convolution2D(filters=1,kernel_size=1,padding='same',name='last_conv_3_by_3')(X)
     X = BatchNormalization(name='last_conv_3_by_3_batch_norm')(X)
     X = Activation('sigmoid',name='last_conv_sigmoid')(X)
     # X = tf.keras.layers.Flatten(name='last_conv_flatten')(X)
@@ -264,7 +264,7 @@ train_meta = pd.read_csv('C:\\_data\\dataset\\train_meta.csv')
 test_meta = pd.read_csv('C:\\_data\\dataset\\test_meta.csv')
 
 #  저장 이름
-save_name = 'indian0321_band652'
+save_name = 'indian0321_band765'
 
 N_FILTERS = 22 # 필터수 지정
 N_CHANNELS = 3 # channel 지정
@@ -289,10 +289,10 @@ EARLY_STOP_PATIENCE = 17
 
 # 중간 가중치 저장 이름
 CHECKPOINT_PERIOD = 10
-CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}indian0321_band_652.hdf5'.format(MODEL_NAME, save_name)
+CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}indian0322_band_765.hdf5'.format(MODEL_NAME, save_name)
  
 # 최종 가중치 저장 이름
-FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_indian0321_band_652.h5'.format(MODEL_NAME, save_name)
+FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_indian0322_band_765.h5'.format(MODEL_NAME, save_name)
 
 # 사용할 GPU 이름
 CUDA_DEVICE = 0
@@ -341,7 +341,7 @@ validation_generator = generator_from_lists(images_validation, masks_validation,
 # model = get_attention_unet()
 # model = get_model(MODEL_NAME, nClasses=1, input_height=IMAGE_SIZE[0], input_width=IMAGE_SIZE[1], n_filters=N_FILTERS, n_channels=N_CHANNELS)
 learning_rate = 0.001
-model.load_weights('C:\\_data\\dataset\\output\\checkpoint-concat-indian0321_band652-epoch_01indian0321_band_652.hdf5')
+# model.load_weights('C:\\_data\\dataset\\output\\checkpoint-concat-indian0321_band652-epoch_01indian0321_band_652.hdf5')
 
 model.compile(optimizer=Adam(learning_rate=learning_rate), loss=sm.losses.bce_jaccard_loss, metrics=['accuracy', miou, sm.metrics.iou_score])
 model.summary()
@@ -353,10 +353,10 @@ checkpoint = ModelCheckpoint(os.path.join(OUTPUT_DIR, CHECKPOINT_MODEL_NAME), mo
 save_best_only=True, mode='val_loss')
 
 rlr = ReduceLROnPlateau(monitor='val_loss',             # 통상 early_stopping patience보다 작다
-                        patience=2,
+                        patience=7,
                         mode='min',
                         verbose=1,
-                        factor=0.95,
+                        factor=0.8,
                         # 통상 디폴트보다 높게 잡는다?
                         )
 
