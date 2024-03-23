@@ -7,6 +7,8 @@ datasets = fetch_california_housing()
 x = datasets.data
 y = datasets.target
 
+
+
 #데이터 전처리
 from sklearn.model_selection import train_test_split
 x_train, x_test, y_train, y_test = train_test_split(x,y, train_size=0.7, random_state= 20)
@@ -85,7 +87,7 @@ plt.figure(figsize=(6,6)) #세로 9 가로 6
 plt.plot(history_loss, c = 'red', label = 'loss', marker = '.' )
 plt.plot(history_val_loss, c = 'blue', label = 'val_loss', marker = '.' )
 plt.legend(loc = 'upper right')
-plt.title('캘리포니아 찻트')
+plt.title('캘리포니아 차트')
 plt.xlabel('epoch')
 plt.ylabel('loss')
 plt.grid()
