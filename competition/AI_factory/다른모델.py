@@ -185,10 +185,10 @@ save_name = 'PspNet'
 N_FILTERS = 16 # 필터수 지정
 N_CHANNELS = 3 # channel 지정
 EPOCHS = 30 # 훈련 epoch 지정
-BATCH_SIZE = 1 # batch size 지정
+BATCH_SIZE = 32 # batch size 지정
 IMAGE_SIZE = (256, 256) # 이미지 크기 지정
 MODEL_NAME = 'psp' # 모델 이름
-RANDOM_STATE = 3445 # seed 고정
+RANDOM_STATE = 3225 # seed 고정
 INITIAL_EPOCH = 0 # 초기 epoch
 
 # 데이터 위치
