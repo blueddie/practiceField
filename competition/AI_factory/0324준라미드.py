@@ -1,8 +1,8 @@
 
-from keras.layers import Input, Convolution2D, BatchNormalization, Activation, LeakyReLU, Add, ReLU, GlobalAveragePooling2D, Reshape, AveragePooling2D, UpSampling2D, Flatten
+from keras.layers import Input, Convolution2D, BatchNormalization, Activation, LeakyReLU, Add, ReLU, GlobalAveragePooling2D, Reshape, AveragePooling2D, UpSampling2D, Flatten, GlobalMaxPooling2D, MaxPooling2D
 from keras.models import Model
 import tensorflow as tf
-from keras_self_attention import SeqSelfAttention
+# from keras_self_attention import SeqSelfAttention
 import os
 import warnings
 warnings.filterwarnings("ignore")
@@ -36,8 +36,8 @@ from keras import backend as K
 from sklearn.model_selection import train_test_split
 import segmentation_models as sm
 import joblib
-tf.random.set_seed(3)
-np.random.seed(3)
+tf.random.set_seed(42)
+np.random.seed(42)
 MAX_PIXEL_VALUE = 65535 # 이미지 정규화를 위한 픽셀 최대값
 THESHOLDS = 0.25
 
@@ -70,13 +70,11 @@ def get_img_arr(path):
     return img
 
 def get_img_762bands(path):
-    img = rasterio.open(path).read((7,6,5)).transpose((1, 2, 0))    
+    img = rasterio.open(path).read((7,5,6)).transpose((1, 2, 0))    
     img = np.float32(img)/MAX_PIXEL_VALUE
     
     return img
-
-
-
+    
 def get_mask_arr(path):
     img = rasterio.open(path).read().transpose((1, 2, 0))
     seg = np.float32(img)
@@ -96,7 +94,7 @@ def miou(y_true, y_pred, smooth=1e-6):
     return miou
 
 @threadsafe_generator
-def generator_from_lists(images_path, masks_path, batch_size=32, shuffle = True, random_state=None, image_mode='10bands'):
+def generator_from_lists(images_path, masks_path, batch_size=32, shuffle = True, random_state=None, image_mode='762'):
    
     images = []
     masks = []
@@ -197,19 +195,19 @@ def pyramid_feature_maps(input_layer):
     # red
     red = GlobalAveragePooling2D(name='red_pool')(base)
     red = tf.keras.layers.Reshape((1,1,256))(red)
-    red = Convolution2D(filters=64,kernel_size=(1,1),name='red_1_by_1')(red)
+    red = Convolution2D(filters=32,kernel_size=(1,1),name='red_1_by_1')(red)
     red = UpSampling2D(size=256,interpolation='bilinear',name='red_upsampling')(red)
     # yellow
     yellow = MaxPooling2D(pool_size=(2,2),name='yellow_pool')(base)
-    yellow = Convolution2D(filters=64,kernel_size=(1,1),name='yellow_1_by_1')(yellow)
+    yellow = Convolution2D(filters=32,kernel_size=(1,1),name='yellow_1_by_1')(yellow)
     yellow = UpSampling2D(size=2,interpolation='bilinear',name='yellow_upsampling')(yellow)
     # blue
     blue = MaxPooling2D(pool_size=(4,4),name='blue_pool')(base)
-    blue = Convolution2D(filters=64,kernel_size=(1,1),name='blue_1_by_1')(blue)
+    blue = Convolution2D(filters=32,kernel_size=(1,1),name='blue_1_by_1')(blue)
     blue = UpSampling2D(size=4,interpolation='bilinear',name='blue_upsampling')(blue)
     # green
     green = MaxPooling2D(pool_size=(8,8),name='green_pool')(base)
-    green = Convolution2D(filters=64,kernel_size=(1,1),name='green_1_by_1')(green)
+    green = Convolution2D(filters=32,kernel_size=(1,1),name='green_1_by_1')(green)
     green = UpSampling2D(size=8,interpolation='bilinear',name='green_upsampling')(green)
     # base + red + yellow + blue + green
     return tf.keras.layers.concatenate([base,red,yellow,blue,green])
@@ -240,41 +238,21 @@ input_shape = (256, 256, 3)  # Replace height, width, and channels with actual v
 model = build_model(input_shape)
 model.summary()
 
-# # 두 샘플 간의 유사성 metric
-# def dice_coef(y_true, y_pred, smooth=1):
-#     intersection = K.sum(y_true * y_pred, axis=[1,2,3])
-#     union = K.sum(y_true, axis=[1,2,3]) + K.sum(y_pred, axis=[1,2,3])
-#     dice = K.mean((2. * intersection + smooth)/(union + smooth), axis=0)
-#     return dice
-
-# # 픽셀 정확도를 계산 metric
-# def pixel_accuracy (y_true, y_pred):
-#     sum_n = np.sum(np.logical_and(y_pred, y_true))
-#     sum_t = np.sum(y_true)
- 
-#     if (sum_t == 0):
-#         pixel_accuracy = 0
-#     else:
-#         pixel_accuracy = sum_n / sum_t
-#     return pixel_accuracy  
-
 # # 사용할 데이터의 meta정보 가져오기
 
 train_meta = pd.read_csv('C:\\_data\\dataset\\train_meta.csv')
 test_meta = pd.read_csv('C:\\_data\\dataset\\test_meta.csv')
 
 #  저장 이름
-save_name = 'indian0321_band765'
+save_name = 'indian0318'
 
-N_FILTERS = 22 # 필터수 지정
+N_FILTERS = 24 # 필터수 지정
 N_CHANNELS = 3 # channel 지정
 EPOCHS = 1000 # 훈련 epoch 지정
-BATCH_SIZE = 12  # batch size 지정
+BATCH_SIZE = 8  # batch size 지정
 IMAGE_SIZE = (256, 256) # 이미지 크기 지정
-MODEL_NAME = 'concat' # 모델 이름
-# RANDOM_STATE = 42 # seed 고정 1
-# RANDOM_STATE = 63423 # seed 고정  2
-RANDOM_STATE = 71823 # seed 고정    3
+MODEL_NAME = 'psp' # 모델 이름
+RANDOM_STATE = 713 # seed 고정
 INITIAL_EPOCH = 0 # 초기 epoch
 
 # 데이터 위치
@@ -286,15 +264,15 @@ OUTPUT_DIR = 'C:\\_data\\dataset\\output\\'
 WORKERS = -3
 
 # 조기종료
-EARLY_STOP_PATIENCE = 33
+EARLY_STOP_PATIENCE = 40
 
 
 # 중간 가중치 저장 이름
-CHECKPOINT_PERIOD = 10
-CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}indian0324_band_765_jjane.hdf5'.format(MODEL_NAME, save_name)
+CHECKPOINT_PERIOD = 3
+CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}indian0319Swi955.hdf5'.format(MODEL_NAME, save_name)
  
 # 최종 가중치 저장 이름
-FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_indian0324_band_765_jjane.h5'.format(MODEL_NAME, save_name)
+FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_indian0319Swi955.h5'.format(MODEL_NAME, save_name)
 
 # 사용할 GPU 이름
 CUDA_DEVICE = 0
@@ -321,7 +299,7 @@ except:
 
 
 # train : val = 8 : 2 나누기
-x_tr, x_val = train_test_split(train_meta, test_size=0.15, random_state=RANDOM_STATE)
+x_tr, x_val = train_test_split(train_meta, test_size=0.1, random_state=RANDOM_STATE)
 print(len(x_tr), len(x_val))
 
 # train : val 지정 및 generator
@@ -342,23 +320,22 @@ validation_generator = generator_from_lists(images_validation, masks_validation,
 
 # model = get_attention_unet()
 # model = get_model(MODEL_NAME, nClasses=1, input_height=IMAGE_SIZE[0], input_width=IMAGE_SIZE[1], n_filters=N_FILTERS, n_channels=N_CHANNELS)
-learning_rate = 0.0001
-
-model.compile(optimizer=Adam(learning_rate=learning_rate), loss=sm.losses.bce_jaccard_loss, metrics=['accuracy', miou, sm.metrics.iou_score])
-model.load_weights('C:\\_data\\dataset\\output\\checkpoint-concat-indian0321_band765-epoch_01indian0324_band_765_bi.hdf5')
+# learning_rate = 0.005
+model.compile(optimizer=Adam(), loss=sm.losses.binary_focal_dice_loss, metrics=[sm.metrics.iou_score])
 model.summary()
 
 # checkpoint 및 조기종료 설정
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
 # es = EarlyStopping(monitor='val_miou', mode='max', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
-checkpoint = ModelCheckpoint(os.path.join(OUTPUT_DIR, CHECKPOINT_MODEL_NAME), monitor='val_loss', verbose=1,
-save_best_only=True, mode='min')
+checkpoint = ModelCheckpoint(os.path.join(OUTPUT_DIR, CHECKPOINT_MODEL_NAME), monitor='val_loss', mode='min', verbose=1,
+save_best_only=True)
 
 rlr = ReduceLROnPlateau(monitor='val_loss',             # 통상 early_stopping patience보다 작다
-                        patience=15,
+                        patience=7,
                         mode='min',
                         verbose=1,
-                        factor=0.5,
+                        factor=0.7,
+                        min_lr = 0.0000001
                         # 통상 디폴트보다 높게 잡는다?
                         )
 
@@ -380,7 +357,7 @@ rlr = ReduceLROnPlateau(monitor='val_loss',             # 통상 early_stopping 
 # model.save_weights(model_weights_output)
 # print("저장된 가중치 명: {}".format(model_weights_output))
 
-# model.load_weights('C:\\_data\\dataset\\output\\model_concat_indian0320_indian0320SwiLoad찐찐.h5')
+model.load_weights('C:\\_data\\dataset\\output\\checkpoint-psp-indian0318-epoch_93indian0319Swi955.hdf5')
 
 y_pred_dict = {}
 
@@ -388,10 +365,10 @@ for i in test_meta['test_img']:
     img = get_img_762bands(f'C:\\_data\\dataset\\test_img\\{i}')
     y_pred = model.predict(np.array([img]), batch_size=1)
     
-    y_pred = np.where(y_pred[0, :, :, 0] > 0.48, 1, 0) # 임계값 처리
+    y_pred = np.where(y_pred[0, :, :, 0] > 0.25, 1, 0) # 임계값 처리
     y_pred = y_pred.astype(np.uint8)
     y_pred_dict[i] = y_pred
 
-joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\0324_05_9494real.pkl')
+joblib.dump(y_pred_dict, 'C:\\_data\\dataset\\output\\똥.pkl')
 
-print(y_pred_dict)
+print('done')

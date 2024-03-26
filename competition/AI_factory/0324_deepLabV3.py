@@ -183,17 +183,17 @@ def SepConv_BN(x, filters, prefix, stride=1, kernel_size=3, rate=1, depth_activa
         depth_padding = 'valid'
 
     if not depth_activation:
-        x = Activation(tf.nn.relu)(x)
+        x = Activation('swish')(x)
     x = DepthwiseConv2D((kernel_size, kernel_size), strides=(stride, stride), dilation_rate=(rate, rate),
                         padding=depth_padding, use_bias=False, name=prefix + '_depthwise')(x)
     x = BatchNormalization(name=prefix + '_depthwise_BN', epsilon=epsilon)(x)
     if depth_activation:
-        x = Activation(tf.nn.relu)(x)
+        x = Activation('swish')(x)
     x = Conv2D(filters, (1, 1), padding='same',
                use_bias=False, name=prefix + '_pointwise')(x)
     x = BatchNormalization(name=prefix + '_pointwise_BN', epsilon=epsilon)(x)
     if depth_activation:
-        x = Activation(tf.nn.relu)(x)
+        x = Activation('swish')(x)
 
     return x
 
@@ -387,11 +387,11 @@ def Deeplabv3(weights='cityscapes', input_tensor=None, input_shape=(256, 256, 3)
         x = Conv2D(32, (3, 3), strides=(2, 2),
                    name='entry_flow_conv1_1', use_bias=False, padding='same')(img_input)
         x = BatchNormalization(name='entry_flow_conv1_1_BN')(x)
-        x = Activation(tf.nn.relu)(x)
+        x = Activation('swish')(x)
 
         x = _conv2d_same(x, 64, 'entry_flow_conv1_2', kernel_size=3, stride=1)
         x = BatchNormalization(name='entry_flow_conv1_2_BN')(x)
-        x = Activation(tf.nn.relu)(x)
+        x = Activation('swish')(x)
 
         x = _xception_block(x, [128, 128, 128], 'entry_flow_block1',
                             skip_connection_type='conv', stride=2,
@@ -481,7 +481,7 @@ def Deeplabv3(weights='cityscapes', input_tensor=None, input_shape=(256, 256, 3)
     b4 = Conv2D(256, (1, 1), padding='same',
                 use_bias=False, name='image_pooling')(b4)
     b4 = BatchNormalization(name='image_pooling_BN', epsilon=1e-5)(b4)
-    b4 = Activation(tf.nn.relu)(b4)
+    b4 = Activation('swish')(b4)
     # upsample. have to use compat because of the option align_corners
     size_before = tf.keras.backend.int_shape(x)
     b4 = tf.keras.layers.experimental.preprocessing.Resizing(
@@ -490,7 +490,7 @@ def Deeplabv3(weights='cityscapes', input_tensor=None, input_shape=(256, 256, 3)
     # simple 1x1
     b0 = Conv2D(256, (1, 1), padding='same', use_bias=False, name='aspp0')(x)
     b0 = BatchNormalization(name='aspp0_BN', epsilon=1e-5)(b0)
-    b0 = Activation(tf.nn.relu, name='aspp0_activation')(b0)
+    b0 = Activation('swish', name='aspp0_activation')(b0)
 
     # there are only 2 branches in mobilenetV2. not sure why
     if backbone == 'xception':
@@ -512,7 +512,7 @@ def Deeplabv3(weights='cityscapes', input_tensor=None, input_shape=(256, 256, 3)
     x = Conv2D(256, (1, 1), padding='same',
                use_bias=False, name='concat_projection')(x)
     x = BatchNormalization(name='concat_projection_BN', epsilon=1e-5)(x)
-    x = Activation(tf.nn.relu)(x)
+    x = Activation('swish')(x)
     x = Dropout(0.1)(x)
     # DeepLab v.3+ decoder
 
@@ -527,7 +527,7 @@ def Deeplabv3(weights='cityscapes', input_tensor=None, input_shape=(256, 256, 3)
                            use_bias=False, name='feature_projection0')(skip1)
         dec_skip1 = BatchNormalization(
             name='feature_projection0_BN', epsilon=1e-5)(dec_skip1)
-        dec_skip1 = Activation(tf.nn.relu)(dec_skip1)
+        dec_skip1 = Activation('swish')(dec_skip1)
         x = Concatenate()([x, dec_skip1])
         x = SepConv_BN(x, 256, 'decoder_conv0',
                        depth_activation=True, epsilon=1e-5)
@@ -611,13 +611,13 @@ EARLY_STOP_PATIENCE = 30
 
 # 중간 가중치 저장 이름
 CHECKPOINT_PERIOD = 5
-CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}deep0319.hdf5'.format(MODEL_NAME, save_name)
+CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}deep0324_city22.hdf5'.format(MODEL_NAME, save_name)
  
 # 최종 가중치 저장 이름
-FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_final_weights_deep0319.h5'.format(MODEL_NAME, save_name)
+FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_final_weights_deep0324_city22.h5'.format(MODEL_NAME, save_name)
 
 # train : val = 8 : 2 나누기
-x_tr, x_val = train_test_split(train_meta, test_size=0.2, random_state=RANDOM_STATE)
+x_tr, x_val = train_test_split(train_meta, test_size=0.15, random_state=RANDOM_STATE)
 print(len(x_tr), len(x_val))
 
 # train : val 지정 및 generator
@@ -630,13 +630,7 @@ masks_validation = [os.path.join(MASKS_PATH, mask) for mask in x_val['train_mask
 train_generator = generator_from_lists(images_train, masks_train, batch_size=BATCH_SIZE, random_state=RANDOM_STATE, image_mode="762")
 validation_generator = generator_from_lists(images_validation, masks_validation, batch_size=BATCH_SIZE, random_state=RANDOM_STATE, image_mode="762")
 
-rlr = ReduceLROnPlateau(monitor='val_iou_score',             # 통상 early_stopping patience보다 작다
-                        patience=10,
-                        mode='max',
-                        verbose=1,
-                        factor=0.5,
-                        # 통상 디폴트보다 높게 잡는다?
-                        )
+
 #miou metric
 def miou(y_true, y_pred, smooth=1e-6):
     # 임계치 기준으로 이진화
@@ -660,14 +654,24 @@ model = Deeplabv3()
 
 model.summary()
 
+rlr = ReduceLROnPlateau(monitor='val_loss',             # 통상 early_stopping patience보다 작다
+                        patience=7,
+                        mode='min',
+                        verbose=1,
+                        factor=0.8,
+                        # 통상 디폴트보다 높게 잡는다?
+                        )
 
-
-model.compile(optimizer = 'adam', loss =sm.losses.bce_dice_loss, metrics = ['accuracy', sm.metrics.iou_score, miou])
+model.compile(optimizer = 'adam', loss =sm.losses.bce_jaccard_loss, metrics = [sm.metrics.iou_score, miou])
 
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
 
-checkpoint = ModelCheckpoint(os.path.join(OUTPUT_DIR, CHECKPOINT_MODEL_NAME), monitor='val_iou_score', verbose=1,
-save_weights_only=True, mode='max')
+model.load_weights('C:\\_data\\dataset\\output\\checkpoint-deeplabv3-deeplabV3-epoch_05deep0324_city.hdf5')
+
+
+
+checkpoint = ModelCheckpoint(os.path.join(OUTPUT_DIR, CHECKPOINT_MODEL_NAME), monitor='val_loss', verbose=1,
+save_weights_only=True, mode='min')
 
 print('---model 훈련 시작---')
 history = model.fit_generator(
