@@ -190,7 +190,7 @@ xgb = XGBRegressor(
 )
 
 # rf = RandomForestRegressor()
-cb = CatBoostRegressor(border_count=64, colsample_bylevel=0.9, depth=8, iterations=300, l2_leaf_reg=5, learning_rate=0.05, subsample=0.9)
+cb = CatBoostRegressor(border_count=128, colsample_bylevel=0.8, depth=12, iterations=500, l2_leaf_reg=5, learning_rate=0.0025, subsample=0.9)
 
 model = VotingRegressor(
     estimators=[('CB', cb),('XGB', xgb)],
@@ -221,7 +221,7 @@ y_submit = model.predict(test_csv)
 y_submit[y_submit < 0] = 0
 
 submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
-submission_csv.to_csv(csv_path + "0314_3.csv", index=False)
+submission_csv.to_csv(csv_path + "0320_3.csv", index=False)
 
 # 최적의 파라미터 :  {'colsample_bytree': 0.8, 'gamma': 0, 'learning_rate': 0.025, 'max_depth': 7, 'min_child_weight': 7, 'n_estimators': 200, 'subsample': 0.8}
 # model.score :  0.32612353495009505
