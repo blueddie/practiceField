@@ -110,7 +110,7 @@ def get_img_arr(path):
     return img
 
 def get_img_762bands(path):
-    img = rasterio.open(path).read((7,6,2)).transpose((1, 2, 0))    
+    img = rasterio.open(path).read((7,6,5)).transpose((1, 2, 0))    
     img = np.float32(img)/MAX_PIXEL_VALUE
     
     return img
@@ -603,7 +603,7 @@ IMAGES_PATH = 'C:\\_data\\dataset\\train_img\\'
 MASKS_PATH = 'C:\\_data\\dataset\\train_mask\\'
 
 # 가중치 저장 위치
-OUTPUT_DIR = 'C:\\_data\\dataset\\output\\'
+OUTPUT_DIR = 'C:\\_data\\dataset\\output2\\'
 WORKERS = 18
 
 # 조기종료
@@ -611,10 +611,10 @@ EARLY_STOP_PATIENCE = 30
 
 # 중간 가중치 저장 이름
 CHECKPOINT_PERIOD = 5
-CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}deep0324_city22.hdf5'.format(MODEL_NAME, save_name)
+CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}deep0326_city11.hdf5'.format(MODEL_NAME, save_name)
  
 # 최종 가중치 저장 이름
-FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_final_weights_deep0324_city22.h5'.format(MODEL_NAME, save_name)
+FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_final_weights_deep0326_city11.h5'.format(MODEL_NAME, save_name)
 
 # train : val = 8 : 2 나누기
 x_tr, x_val = train_test_split(train_meta, test_size=0.15, random_state=RANDOM_STATE)
@@ -655,7 +655,7 @@ model = Deeplabv3()
 model.summary()
 
 rlr = ReduceLROnPlateau(monitor='val_loss',             # 통상 early_stopping patience보다 작다
-                        patience=7,
+                        patience=4,
                         mode='min',
                         verbose=1,
                         factor=0.8,
@@ -666,7 +666,7 @@ model.compile(optimizer = 'adam', loss =sm.losses.bce_jaccard_loss, metrics = [s
 
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
 
-model.load_weights('C:\\_data\\dataset\\output\\checkpoint-deeplabv3-deeplabV3-epoch_05deep0324_city.hdf5')
+# model.load_weights('C:\\_data\\dataset\\output\\checkpoint-deeplabv3-deeplabV3-epoch_05deep0324_city.hdf5')
 
 
 
