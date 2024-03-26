@@ -505,7 +505,7 @@ print("저장된 가중치 명: {}".format(model_weights_output))
 
 # model.load_weights('C:\\_data\\dataset\\output\\checkpoint-MultiResUNet-0324final_line-epoch_1040324Final44.hdf5') 로드 후 0.00001 재훈련
 
-# c:\_data\dataset\output\checkpoint-MultiResUNet-0324final_line-epoch_010324Final44111.hdf5 프레딕 임계값 0.26
+# c:\_data\dataset\output\checkpoint-MultiResUNet-0324final_line-epoch_010324Final44111.hdf5 프레딕 임계값 0.26 
 
 
 
