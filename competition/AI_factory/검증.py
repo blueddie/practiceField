@@ -363,7 +363,7 @@ IMAGES_PATH = 'C:\\_data\\dataset\\train_img\\'
 MASKS_PATH = 'C:\\_data\\dataset\\train_mask\\'
 
 # 가중치 저장 위치
-OUTPUT_DIR = 'C:\\_data\\dataset\\output\\'
+OUTPUT_DIR = 'C:\\_data\\dataset\\output2\\'
 WORKERS = 22
 
 # 조기종료
@@ -371,10 +371,10 @@ EARLY_STOP_PATIENCE = 40
 
 # 중간 가중치 저장 이름
 CHECKPOINT_PERIOD = 5
-CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}0324Final44111222.hdf5'.format(MODEL_NAME, save_name)
+CHECKPOINT_MODEL_NAME = 'checkpoint-{}-{}-epoch_{{epoch:02d}}0326추가학습55.hdf5'.format(MODEL_NAME, save_name)
  
 # 최종 가중치 저장 이름
-FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_final_weights0324Final44111222.h5'.format(MODEL_NAME, save_name)
+FINAL_WEIGHTS_OUTPUT = 'model_{}_{}_final_weights0326추가학습55.h5'.format(MODEL_NAME, save_name)
 
 # 사용할 GPU 이름
 CUDA_DEVICE = 0
@@ -431,7 +431,7 @@ def miou(y_true, y_pred, smooth=1e-6):
     return miou
 
 # model 불러오기
-learning_rate = 0.000005
+learning_rate = 0.000008
 model = MultiResUnet(height=IMAGE_SIZE[0], width=IMAGE_SIZE[1], n_channels=N_CHANNELS,)
 # optimizer = tfa.optimizers.AdamW(learning_rate=learning_rate, weight_decay=1e-4)  # 1e-4 = 0.0001
 optimizer = Adam(learning_rate=learning_rate)  # 1e-4 = 0.0001
@@ -442,7 +442,8 @@ model.compile(
               loss=sm.losses.bce_jaccard_loss, 
               metrics=['accuracy', sm.metrics.iou_score, miou])
 model.summary()
-model.load_weights('C:\\_data\\dataset\\output\\checkpoint-MultiResUNet-0324final_line-epoch_020324Final44111.hdf5')
+# model.load_weights('C:\\_data\\dataset\\output\\checkpoint-MultiResUNet-0324final_line-epoch_010324Final44111.hdf5')
+model.load_weights('C:\\_data\\dataset\\output2\\checkpoint-MultiResUNet-0324final_line-epoch_020326추가학습3.hdf5')
 
 # checkpoint 및 조기종료 설정
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=EARLY_STOP_PATIENCE, restore_best_weights=True)
@@ -465,26 +466,26 @@ rlr = ReduceLROnPlateau(monitor='val_loss', patience=7, factor=0.8, mode='min')
 
 
 
-# print('---model 훈련 시작---')
-# history = model.fit(
-#     train_generator,
-#     steps_per_epoch=len(images_train) // BATCH_SIZE,
-#     validation_data=validation_generator,
-#     validation_steps=len(images_validation) // BATCH_SIZE,
-#     callbacks=[checkpoint, es, rlr],
-#     epochs=EPOCHS,
-#     workers=WORKERS,
-#     initial_epoch=INITIAL_EPOCH
-# )
-# print('---model 훈련 종료---')
+print('---model 훈련 시작---')
+history = model.fit(
+    train_generator,
+    steps_per_epoch=len(images_train) // BATCH_SIZE,
+    validation_data=validation_generator,
+    validation_steps=len(images_validation) // BATCH_SIZE,
+    callbacks=[checkpoint, es, rlr],
+    epochs=EPOCHS,
+    workers=WORKERS,
+    initial_epoch=INITIAL_EPOCH
+)
+print('---model 훈련 종료---')
 
-# print('가중치 저장')
-# model_weights_output = os.path.join(OUTPUT_DIR, FINAL_WEIGHTS_OUTPUT)
-# model.save_weights(model_weights_output)
-# print("저장된 가중치 명: {}".format(model_weights_output))
+print('가중치 저장')
+model_weights_output = os.path.join(OUTPUT_DIR, FINAL_WEIGHTS_OUTPUT)
+model.save_weights(model_weights_output)
+print("저장된 가중치 명: {}".format(model_weights_output))
 
 
-# model.load_weights('C:\\_data\\dataset\\output\\model_MultiResUNet_sample_line_final_weights.h5')
+# model.load_weights('C:\\_data\\dataset\\output\\checkpoint-MultiResUNet-0324final_line-epoch_010326검증.hdf5')
 
 # y_pred_dict = {}
 
@@ -492,13 +493,13 @@ rlr = ReduceLROnPlateau(monitor='val_loss', patience=7, factor=0.8, mode='min')
 #     img = get_img_762bands(f'C:\\_data\\dataset\\test_img\\{i}')
 #     y_pred = model.predict(np.array([img]), batch_size=1, verbose=0)
     
-#     y_pred = np.where(y_pred[0, :, :, 0] > 0.25, 1, 0) # 임계값 처리
+#     y_pred = np.where(y_pred[0, :, :, 0] > 0.26, 1, 0) # 임계값 처리
 #     y_pred = y_pred.astype(np.uint8)
 #     y_pred_dict[i] = y_pred
 
 # from datetime import datetime
 # dt = datetime.now()
-# joblib.dump(y_pred_dict, f'D:\\_data\\dataset\\output\\y_pred_{dt.day}_{dt.hour}_{dt.minute}.pkl')
+# joblib.dump(y_pred_dict, f'C:\\_data\\dataset\\output\\검증.pkl')
 # print(f'끝. : y_pred_{dt.day}_{dt.hour}_{dt.minute}.pkl ')
 
 # 67 체크포인트 임계값 26

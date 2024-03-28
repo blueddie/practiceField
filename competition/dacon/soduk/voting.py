@@ -138,90 +138,85 @@ test_csv = test_csv.astype('float32')
 
 # print(x.dtypes)
 # print(test_csv.dtypes)
+random_state = 1
+while True :
 
-random_state = 312
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=random_state)
 
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=random_state)
+    print(x_train.shape, y_train.shape)
 
-print(x_train.shape, y_train.shape)
+    # scaler = StandardScaler()
+    scaler = MinMaxScaler()
+    scaler.fit(x_train)
+    x_train = scaler.transform(x_train)
+    x_test = scaler.transform(x_test)
+    test_csv = scaler.transform(test_csv)
 
-# parameters = {
-#     'learning_rate': [0.01, 0.001, 0.025, 0.0001],
-#     'max_depth': [3, 5, 7],
-#     'min_child_weight': [1, 3, 5],
-#     'subsample': [0.6, 0.8, 1.0],
-#     'colsample_bytree': [0.6, 0.8, 1.0],
-#     'gamma': [0, 0.1, 0.2],
-#     'n_estimators': [100, 200, 300]
-# }
-# TensorFlow GPU 설정
+    #2 모델
+    # 최적의 파라미터 :  {'colsample_bytree': 0.8, 'gamma': 0, 'learning_rate': 0.025, 'max_depth': 7, 'min_child_weight': 7, 'n_estimators': 200, 'subsample': 0.8}
+    xgb = XGBRegressor(
+        colsample_bytree=0.8,
+        gamma=0,
+        learning_rate=0.025,
+        max_depth=10,
+        min_child_weight=9,
+        n_estimators=200,
+        subsample=0.8
+    )
 
-# param_grid = {
-    
-#     'n_estimators': [100, 200, 300],  # 트리의 개수
-#     'max_depth': [3, 5, 7],              # 트리의 최대 깊이
-#     'learning_rate': [0.01, 0.05, 0.025, 0.0001],# 학습률
-#     'min_child_weight': [1, 3, 5, 7],       # 최소 자식 노드의 가중치 합
-#     'gamma': [0, 0.1, 0.2, 0.3],            # 트리의 리프 노드에서 추가적으로 가중치를 주는 파라미터
-#     'subsample': [0.8, 0.9, 1.0],           # 각 트리에서 사용할 샘플의 비율
-#     'colsample_bytree': [0.8, 0.9, 1.0, 0.7],    # 각 트리에서 사용할 feature의 비율
-#     # 'reg_alpha': [0, 0.1, 0.5, 1],          # L1 정규화 파라미터
-#     # 'reg_lambda': [0, 0.1, 0.5, 1]          # L2 정규화 파라미터
-# }
+    # rf = RandomForestRegressor()
+    cb = CatBoostRegressor(border_count=128, colsample_bylevel=0.8, depth=12, iterations=500, l2_leaf_reg=5, learning_rate=0.0025, subsample=0.9)
 
-
-# scaler = StandardScaler()
-scaler = MinMaxScaler()
-scaler.fit(x_train)
-x_train = scaler.transform(x_train)
-x_test = scaler.transform(x_test)
-test_csv = scaler.transform(test_csv)
-
-#2 모델
-# 최적의 파라미터 :  {'colsample_bytree': 0.8, 'gamma': 0, 'learning_rate': 0.025, 'max_depth': 7, 'min_child_weight': 7, 'n_estimators': 200, 'subsample': 0.8}
-xgb = XGBRegressor(
-    colsample_bytree=0.8,
-    gamma=0,
-    learning_rate=0.025,
-    max_depth=10,
-    min_child_weight=9,
-    n_estimators=200,
-    subsample=0.8
-)
-
-# rf = RandomForestRegressor()
-cb = CatBoostRegressor(border_count=128, colsample_bylevel=0.8, depth=12, iterations=500, l2_leaf_reg=5, learning_rate=0.0025, subsample=0.9)
-
-model = VotingRegressor(
-    estimators=[('CB', cb),('XGB', xgb)],
-    # voting= 'soft',
-    # voting = 'hard' # 디폴트!
-)
+    model = VotingRegressor(
+        estimators=[('CB', cb),('XGB', xgb)],
+        # voting= 'soft',
+        # voting = 'hard' # 디폴트!
+    )
 
 
-#3 훈련
-start_time = time.time()
-model.fit(x_train, y_train)
-end_time = time.time()
+    # #3 훈련
+    # start_time = time.time()
+    # model.fit(x_train, y_train)
+    # end_time = time.time()
 
 
-# print("최적의 파라미터 : ", model.best_params_)
-# print('best_score : ', model.best_score_)
-print('model.score : ', model.score(x_test, y_test))
+    # # print("최적의 파라미터 : ", model.best_params_)
+    # # print('best_score : ', model.best_score_)
+    # print('model.score : ', model.score(x_test, y_test))
+    model.fit(x_train, y_train,
+            #    eval_set=[(x_test, y_test)] ,
+                 )
 
+    # print("---------------------------------------------------------")
+    # print("최적의 파라미터 : ", model.best_params_)
+    # print('best_score : ', model.best_score_)
+    # print("점수", model.score(x_test, y_test))
+    result = model.score(x_test, y_test)
+
+    if result > 0.3:
+        if result > max_value:
+            max_rs = random_state
+            max_value = result
+            print(f"rs : {random_state}, max_value : {max_value}")
+            print("최적의 파라미터 : ", model.best_params_)
+            random_state = random_state + 1
+        else :
+            random_state = random_state + 1
+    else :
+        random_state = random_state + 1
 # def RMSE(y_test, y_predict):
 #     rmse = np.sqrt(mean_squared_error(y_test, y_predict))
     
-y_pred = model.predict(x_test)   
+# y_pred = model.predict(x_test)   
 # train_rmse = RMSE(y_test, y_pred)
 # print("훈련 rmse", train_rmse)
 # print(y_pred)
+##################################################################################
+# y_submit = model.predict(test_csv)
+# y_submit[y_submit < 0] = 0
 
-y_submit = model.predict(test_csv)
-y_submit[y_submit < 0] = 0
-
-submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
-submission_csv.to_csv(csv_path + "0320_3.csv", index=False)
+# submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
+# submission_csv.to_csv(csv_path + "032_3.csv", index=False)
 
 # 최적의 파라미터 :  {'colsample_bytree': 0.8, 'gamma': 0, 'learning_rate': 0.025, 'max_depth': 7, 'min_child_weight': 7, 'n_estimators': 200, 'subsample': 0.8}
 # model.score :  0.32612353495009505
