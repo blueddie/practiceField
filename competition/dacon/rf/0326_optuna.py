@@ -1,14 +1,13 @@
-import optuna
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_score
-import pandas as pd
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-from sklearn.ensemble import RandomForestClassifier
 import numpy as np
-import random
-from sklearn.metrics import roc_auc_score
-import os
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler, MaxAbsScaler
+from sklearn.metrics import roc_auc_score
+import optuna
+import random
+import os
+
 def seed_everything(seed):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -16,80 +15,73 @@ def seed_everything(seed):
 
 seed_everything(42) # Seed 고정
 
-data = pd.read_csv('C:\\_data\\dacon\\rf\\train.csv')
+# 1. 데이터
+path = 'C:\\_data\\dacon\\rf\\'
 
-# person_id 컬럼 제거
-x = data.drop(['person_id', 'login'], axis=1)
-y = data['login']
+train_csv = pd.read_csv(path + "train.csv", index_col=0)
+submission_csv = pd.read_csv(path + "sample_submission.csv")
 
-x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=42, test_size=0.2, stratify=y)
+x = train_csv.drop(['login'], axis=1)
+y = train_csv['login']
 
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.27, random_state=42)
 
+scaler = StandardScaler()
+scaler.fit(x_train)
+x_train = scaler.transform(x_train)
+x_test = scaler.transform(x_test)
 
+# 이전 시험의 최적 성능을 저장하기 위한 변수
+best_auc = float('-inf')
 
-# def objective(trial):
-#     # 하이퍼파라미터 탐색 공간 정의
-#     params = {
-#         'n_estimators': trial.suggest_int('n_estimators', 50, 200),
-#         'criterion': trial.suggest_categorical('criterion', ['gini', 'entropy']),
-#         'max_depth': trial.suggest_int('max_depth', 3, 10),
-#         'min_samples_split': trial.suggest_float('min_samples_split', 0.1, 1),
-#         'min_samples_leaf': trial.suggest_float('min_samples_leaf', 0.1, 0.5),
-#         'min_weight_fraction_leaf': trial.suggest_float('min_weight_fraction_leaf', 0.0, 0.5),
-#         'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2']),
-#         'max_leaf_nodes': trial.suggest_int('max_leaf_nodes', 10, 100),
-#         'min_impurity_decrease': trial.suggest_float('min_impurity_decrease', 0.0, 0.5),
-#         'bootstrap': trial.suggest_categorical('bootstrap', [True, False])
-#     }
-
-#     model = RandomForestClassifier(**params)
-#     score = cross_val_score(model, X_train, y_train, cv=5).mean()
 def objective(trial):
+    global best_auc
+    
     # 하이퍼파라미터 탐색 공간 정의
-    params = {
-        'n_estimators': trial.suggest_int('n_estimators', 50, 300),
-        'criterion': trial.suggest_categorical('criterion', ['gini', 'entropy']),
-        'max_depth': trial.suggest_int('max_depth', 3, 20),
-        # 'min_samples_split': trial.suggest_float('min_samples_split', 0.0, 1.0),
-        # 'min_samples_leaf': trial.suggest_float('min_samples_leaf', 0.1, 0.5),
-        'min_weight_fraction_leaf': trial.suggest_float('min_weight_fraction_leaf', 0.0, 0.5),
-        'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2']),
-        'max_leaf_nodes': trial.suggest_int('max_leaf_nodes', 10, 100),
-        'min_impurity_decrease': trial.suggest_float('min_impurity_decrease', 0.0, 1.0),
-        'bootstrap': trial.suggest_categorical('bootstrap', [True, False])
-    }
+    n_estimators = trial.suggest_int('n_estimators', 100, 600)
+    max_depth = trial.suggest_int('max_depth', 4, 21)
+    min_samples_split = trial.suggest_int('min_samples_split', 2, 20)
+    min_samples_leaf = trial.suggest_int('min_samples_leaf', 1, 20)
+    max_features = trial.suggest_categorical('max_features', ['sqrt', 'log2', None])
+    bootstrap = trial.suggest_categorical('bootstrap', [True, False])
+    ccp_alpha = trial.suggest_float('ccp_alpha', 0.0, 1.0)
+    
+    # 모델 생성
+    model = RandomForestClassifier(
+        n_estimators=n_estimators, 
+        max_depth=max_depth, 
+        min_samples_split=min_samples_split, 
+        min_samples_leaf=min_samples_leaf, 
+        max_features=max_features, 
+        bootstrap=bootstrap,
+        ccp_alpha=ccp_alpha,
+        random_state=42
+    )
 
-    # None 값 체크 및 제거
-    # params = {key: value for key, value in params.items() if value is not None}
+    # 모델 학습
+    model.fit(x_train, y_train)
 
-    clf = RandomForestClassifier(**params)
-    clf.fit(x_train, y_train)
-    # score = cross_val_score(model, X_train, y_train, cv=3).mean()
-    return roc_auc_score(y_test, clf.predict_proba(x_test)[:,1])  # 최적화 대상인 목적 함수는 교차 검증 점수입니다.
+    # 검증 세트에서의 AUC 계산
+    y_pred_proba = model.predict_proba(x_test)[:, 1]
+    auc = roc_auc_score(y_test, y_pred_proba)
+    
+    # 이전 시험보다 성능이 좋으면 최적 성능 및 파라미터 업데이트
+    if auc > best_auc:
+        best_auc = auc
+    
+    return auc
 
-
-
-# 최적화 스터디 생성
 study = optuna.create_study(direction='maximize')
-study.optimize(objective, n_trials=1000)
+study.optimize(objective, n_trials=100)
 
-print('Best trial:')
-trial = study.best_trial
-print('  Value: {}'.format(trial.value))
-print('  Params: ')
-for key, value in trial.params.items():
-    print('    {}: {}'.format(key, value))
+# 최적의 하이퍼파라미터 및 AUC 출력
+best_params = study.best_params
+best_auc = study.best_value
+print('Best parameters:', best_params)
+print('Best AUC:', best_auc)
 
-best_params = trial.params
-
-# 제출 양식 불러오기
-submit = pd.read_csv('C:\\_data\\dacon\\rf\\sample_submission.csv')
-
-# 최적의 하이퍼파라미터를 제출 양식에 적용하여 예측 수행
 for param, value in best_params.items():
-    if param in submit.columns:
-        submit[param] = value
+    if param in submission_csv.columns:
+        submission_csv[param] = value
 
-# 예측 결과를 CSV 파일로 저장
-submit.to_csv('C:\\_data\\dacon\\rf\\optuna33.csv', index=False)
-
+submission_csv.to_csv(path + "tttt.csv", index=False)

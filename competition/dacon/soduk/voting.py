@@ -16,9 +16,11 @@ import tensorflow as tf
 from catboost import CatBoostRegressor
 from lightgbm import LGBMRegressor
 import logging
+import random
+tf.random.set_seed(33)
+np.random.seed(33)
+random.seed(33)
 
-# LightGBM의 로그 수준을 변경합니다.
-logging.getLogger('lightgbm').setLevel(logging.ERROR)
 warnings.filterwarnings("ignore")
 
 #1. 데이터
@@ -28,111 +30,70 @@ train_csv = pd.read_csv(csv_path + "train.csv", index_col=0)
 test_csv = pd.read_csv(csv_path + "test.csv", index_col=0)
 submission_csv = pd.read_csv(csv_path + "sample_submission.csv")
 
-# print(train_csv.shape)  #(20000, 22)
-# print(test_csv.shape)   #(10000, 21)
+# def age_group(age):
+#     if age < 30:
+#         return 'Young'
+#     elif age < 50:
+#         return 'Middle-aged'
+#     else:
+#         return 'Elderly'
 
-# print(train_csv.describe())
-#                 Age  Working_Week (Yearly)         Gains        Losses     Dividends        Income
-# count  20000.000000           20000.000000  20000.000000  20000.000000  20000.000000  20000.000000
-# mean      35.632500              34.943050    383.129500     40.202150    123.451450    554.565250
-# std       17.994414              22.254592   4144.247487    279.182677   1206.949429    701.553155
-# min        0.000000               0.000000      0.000000      0.000000      0.000000      0.000000
-# 25%       23.000000               7.000000      0.000000      0.000000      0.000000      0.000000
-# 50%       34.000000              52.000000      0.000000      0.000000      0.000000    500.000000
-# 75%       47.000000              52.000000      0.000000      0.000000      0.000000    875.000000
-# max       90.000000              52.000000  99999.000000   4356.000000  45000.000000   9999.000000
+# train_csv['Income_Gains_Losses_Dividends'] = train_csv['Gains'] + train_csv['Losses'] + train_csv['Dividends']
+# test_csv['Income_Gains_Losses_Dividends'] = test_csv['Gains'] + test_csv['Losses'] + test_csv['Dividends']
 
-# print(pd.isna(train_csv).sum()) # 결측치 없음
-# print(pd.isna(test_csv).sum()) # 결측치 Household_Status          1개 있음
+print(train_csv.shape)
+print(test_csv.shape)
 
-# print(train_csv.columns)
-# Index(['Age', 'Gender', 'Education_Status', 'Employment_Status',
-#        'Working_Week (Yearly)', 'Industry_Status', 'Occupation_Status', 'Race',
-#        'Hispanic_Origin', 'Martial_Status', 'Household_Status',
-#        'Household_Summary', 'Citizenship', 'Birth_Country',
-#        'Birth_Country (Father)', 'Birth_Country (Mother)', 'Tax_Status',
-#        'Gains', 'Losses', 'Dividends', 'Income_Status', 'Income'],
-#       dtype='object')
+columns_to_drop2 = ['Gains','Losses', 'Dividends']
+train_csv.drop(columns=columns_to_drop2, inplace=True)
+test_csv.drop(columns=columns_to_drop2, inplace=True)
 
-# print(test_csv.columns)
-# Index(['Age', 'Gender', 'Education_Status', 'Employment_Status',
-#        'Working_Week (Yearly)', 'Industry_Status', 'Occupation_Status', 'Race',
-#        'Hispanic_Origin', 'Martial_Status', 'Household_Status',
-#        'Household_Summary', 'Citizenship', 'Birth_Country',
-#        'Birth_Country (Father)', 'Birth_Country (Mother)', 'Tax_Status',
-#        'Gains', 'Losses', 'Dividends', 'Income_Status'],
-#       dtype='object')
 
-# target = Income
+bins = [-1, 9, 19, 29, 39, 49, 59, 69, 79,89,99]  # 연령대 구간 정의
+labels = [0, 1, 2, 3, 4, 5, 6, 7,8,9]  # 연령대 레이블
 
-xy = train_csv.copy()
-x_pred = test_csv.copy()
+# bins = [-1, 19,29,  39, 49, 59, 69, 79,89,99]  # 연령대 구간 정의
+# labels = [1, 2, 3, 4, 5, 6, 7,8,9]  # 연령대 레이블
 
+# bins = [-1, 19, 39, 59, 69, 79,89,99]  # 연령대 구간 정의
+# labels = [1, 2, 3, 4, 5, 6, 7,8,9]  # 연령대 레이블
+train_csv['Age'] = pd.cut(train_csv['Age'], bins=bins, labels=labels)
+test_csv['Age'] = pd.cut(test_csv['Age'], bins=bins, labels=labels)
+
+print(train_csv["Age"])
+
+# print(train_csv.shape)
+# print(test_csv.shape)l
+
+# 결과 확인
+xy = train_csv
 columns_to_drop = ['Income']
 x = xy.drop(columns=columns_to_drop)
 y = xy[columns_to_drop]
 
-# print(x.shape, y.shape) # (20000, 21) (20000, 1)
 
-# print(x.dtypes)
-# Age                        int64
-# Gender                    object
-# Education_Status          object
-# Employment_Status         object
-# Working_Week (Yearly)      int64
-# Industry_Status           object
-# Occupation_Status         object
-# Race                      object
-# Hispanic_Origin           object
-# Martial_Status            object
-# Household_Status          object
-# Household_Summary         object
-# Citizenship               object
-# Birth_Country             object
-# Birth_Country (Father)    object
-# Birth_Country (Mother)    object
-# Tax_Status                object
-# Gains                      int64
-# Losses                     int64
-# Dividends                  int64
-# Income_Status             object
-# print(pd.value_counts(x['Household_Status']))
+print(x.shape)
+print(test_csv.shape)
+# print(x["Total_Income"])
+# lae = LabelEncoder()
+# y = lae.fit_transform(y)
+# print(x.head(10))
+
+
+# x['Average_Income'] = round(x['Gains'] / x['Working_Week (Yearly)'] , 3)
+# test_csv['Average_Income'] = round(test_csv['Gains'] / test_csv['Working_Week (Yearly)'], 3)
+
 mode_value = test_csv['Household_Status'].mode()[0]
 test_csv['Household_Status'].fillna(mode_value, inplace=True)
-# print(pd.isna(test_csv).sum()) # 결측치 최빈값으로 변경 최종적으로 없음
-# print(pd.isna(x).sum()) # 훈련 데이터 결측치 없음 
 
-# print(pd.value_counts(test_csv['Gender']))  # 불균형 없다고 판단
-print(pd.value_counts(x['Education_Status']))
-# print(pd.value_counts(x[]))
-# print(pd.value_counts(x[]))
-# print(pd.value_counts(x[]))
-
-non_numeric_x = []
-for col in x.columns:
-    if x[col].dtype != 'int64':
-        non_numeric_x.append(col)
-
-# print(non_numeric_x)
-# print("========")
-# non_numeric_test = []
+# print(x.dtypes)
+# non_numeric_x = []
 # for col in x.columns:
-#     if test_csv[col].dtype != 'int64':
-#         non_numeric_test.append(col)
-# print(non_numeric_test)
-
-# for col in non_numeric_x:
-#     unique_values_train = set(x[col].unique())
-#     unique_values_test = set(test_csv[col].unique())
-#     common_values = unique_values_train.intersection(unique_values_test)
-#     unique_values_only_df1 = unique_values_train - common_values
-#     unique_values_only_df2 = unique_values_test - common_values
-#     print("train :",unique_values_only_df1)
-#     print("test :", unique_values_only_df2)
-#     print("-------------------------------------------------------")
+#     if x[col].dtype != 'int64 'and x[col].dtype != 'float64':
+#         non_numeric_x.append(col)
 
 for column in x.columns:
-    if (x[column].dtype != 'int64'):
+    if (x[column].dtype != 'int64'and x[column].dtype != 'float64'):
         encoder = LabelEncoder()
         x[column] = encoder.fit_transform(x[column])
         test_csv[column] = encoder.transform(test_csv[column])
@@ -140,6 +101,9 @@ for column in x.columns:
 x = x.astype('float32')
 test_csv = test_csv.astype('float32')
 
+def RMSE(y_test, y_predict):
+    rmse = np.sqrt(mean_squared_error(y_test, y_predict))
+    return rmse
 # print(x.dtypes)
 # print(test_csv.dtypes)
 random_state = 30
@@ -153,7 +117,7 @@ while True :
     # print(x_train.shape, y_train.shape)
 
     # scaler = StandardScaler()
-    scaler = MinMaxScaler()
+    scaler = StandardScaler()
     scaler.fit(x_train)
     x_train = scaler.transform(x_train)
     x_test = scaler.transform(x_test)
@@ -172,16 +136,16 @@ while True :
     )
 
     # rf = RandomForestRegressor()
-    # cb = CatBoostRegressor(border_count=128, colsample_bylevel=0.8, depth=12, iterations=500, l2_leaf_reg=5, learning_rate=0.0025, subsample=0.9)
-    lgbm = LGBMRegressor(
-        # learning_rate=0.1,
-        #                  max_depth=-1,
-        #                  reg_lambda=1,
-        #                  n_estimators=200
-                         )
+    cb = CatBoostRegressor(border_count=128, colsample_bylevel=0.8, depth=12, iterations=500, l2_leaf_reg=5, learning_rate=0.0025, subsample=0.9)
+    # lgbm = LGBMRegressor(
+    #     # learning_rate=0.1,
+    #     #                  max_depth=-1,
+    #     #                  reg_lambda=1,
+    #     #                  n_estimators=200
+    #                      )
 
     model = VotingRegressor(
-        estimators=[('LGBM', lgbm),('XGB', xgb)],
+        estimators=[('CB', cb),('XGB', xgb)],
         # voting= 'soft',
         # voting = 'hard' # 디폴트!
     )
@@ -205,25 +169,49 @@ while True :
     # print('best_score : ', model.best_score_)
     # print("점수", model.score(x_test, y_test))
     result = model.score(x_test, y_test)
+    y_predict = model.predict(x_test)
+    rmse = RMSE(y_test, y_predict)
 
-    if result > 0.34:
-        if result > max_value:
-            max_rs = random_state
-            max_value = result
-            print(f"rs : {random_state}, max_value : {max_value}")
-            # print("최적의 파라미터 : ", model.best_params_)
-            random_state = random_state + 1
-            y_submit = model.predict(test_csv)
-            submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
-            submission_csv.to_csv(csv_path + "0328_lgbm_xgb_voting333.csv", index=False)
-            break
-        else :
-            random_state = random_state + 1
-    else :
+    if rmse < 550:
+        max_rs = random_state
+        max_value = result
+        print(f"rs : {random_state}, max_value : {max_value}")
         random_state = random_state + 1
+        y_submit = model.predict(test_csv)
+        submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
+        submission_csv.to_csv(csv_path + "0329_votingXGB_CB222.csv", index=False)
+        print(rmse)
+        break
+    else :
+        random_state = random_state + 2
+
+    # if result > 0.30:
+    #     if result > max_value:
+    #         max_rs = random_state
+    #         max_value = result
+    #         print(f"rs : {random_state}, max_value : {max_value}")
+    #         # print("최적의 파라미터 : ", model.best_params_)
+    #         random_state = random_state + 1
+    #         y_submit = model.predict(test_csv)
+    #         submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
+    #         submission_csv.to_csv(csv_path + "0329_votingXGB_CB.csv", index=False)
+    #         rmse = RMSE(y_test, y_predict)
+    #         print("rmse : ", rmse)
+    #         break
+    #     else :
+    #         random_state = random_state + 1
+    # else :
+    #     random_state = random_state + 1
+    
+    
+
+
 # def RMSE(y_test, y_predict):
 #     rmse = np.sqrt(mean_squared_error(y_test, y_predict))
-    
+
+
+
+# print("RMSE : ", rmse)
 # y_pred = model.predict(x_test)   
 # train_rmse = RMSE(y_test, y_pred)
 # print("훈련 rmse", train_rmse)

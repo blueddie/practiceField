@@ -100,13 +100,25 @@ for column in x.columns:
 x = x.astype('float32')
 test_csv = test_csv.astype('float32')
 
-random_state = 1
+def RMSE(y_test, y_predict):
+    rmse = np.sqrt(mean_squared_error(y_test, y_predict))
+    return rmse
+
+
+random_state = 444
 max_rs = 0
 max_value = 0.2
 while True:
 
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.15, random_state=random_state)
 
+
+
+    scaler = StandardScaler()
+    scaler.fit(x_train)
+    x_train = scaler.transform(x_train)
+    x_test = scaler.transform(x_test)
+    test_csv = scaler.transform(test_csv)
     # print(x_train.shape, y_train.shape)
     # print(y_train.shape, y_test.shape)
     # print(y_test)
@@ -148,21 +160,23 @@ while True:
 
     model.fit(x_train, y_train, eval_set=[(x_test, y_test)] , verbose=0)
 
+    y_predict = model.predict(x_test)
     # print("---------------------------------------------------------")
     # print("최적의 파라미터 : ", model.best_params_)
     # print('best_score : ', model.best_score_)
     # print("점수", model.score(x_test, y_test))
     result = model.score(x_test, y_test)
+    rmse = RMSE(y_test, y_predict)
+    print("rmse : ", rmse)
+    if rmse < 525:
 
-    if result > 0.3522:
-        if result > max_value:
-            max_rs = random_state
-            max_value = result
-            print(f"rs : {random_state}, max_value : {max_value}")
-            # print("최적의 파라미터 : ", model.best_params_)
-            random_state = random_state + 1
-        else :
-            random_state = random_state + 1
+        y_submit = model.predict(test_csv)
+        submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
+        submission_csv.to_csv(csv_path + "0329_XGB2.csv", index=False)
+        print("최종 rmse : ", rmse)
+        print("rs : ", random_state)
+        break
+
     else :
         random_state = random_state + 1
     
