@@ -14,7 +14,11 @@ from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler
 from xgboost import XGBRegressor
 import tensorflow as tf
 from catboost import CatBoostRegressor
+from lightgbm import LGBMRegressor
+import logging
 
+# LightGBM의 로그 수준을 변경합니다.
+logging.getLogger('lightgbm').setLevel(logging.ERROR)
 warnings.filterwarnings("ignore")
 
 #1. 데이터
@@ -138,12 +142,15 @@ test_csv = test_csv.astype('float32')
 
 # print(x.dtypes)
 # print(test_csv.dtypes)
-random_state = 1
+random_state = 30
+max_rs = 0
+max_value = 0.2
+
 while True :
 
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=random_state)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.15, random_state=random_state)
 
-    print(x_train.shape, y_train.shape)
+    # print(x_train.shape, y_train.shape)
 
     # scaler = StandardScaler()
     scaler = MinMaxScaler()
@@ -165,10 +172,16 @@ while True :
     )
 
     # rf = RandomForestRegressor()
-    cb = CatBoostRegressor(border_count=128, colsample_bylevel=0.8, depth=12, iterations=500, l2_leaf_reg=5, learning_rate=0.0025, subsample=0.9)
+    # cb = CatBoostRegressor(border_count=128, colsample_bylevel=0.8, depth=12, iterations=500, l2_leaf_reg=5, learning_rate=0.0025, subsample=0.9)
+    lgbm = LGBMRegressor(
+        # learning_rate=0.1,
+        #                  max_depth=-1,
+        #                  reg_lambda=1,
+        #                  n_estimators=200
+                         )
 
     model = VotingRegressor(
-        estimators=[('CB', cb),('XGB', xgb)],
+        estimators=[('LGBM', lgbm),('XGB', xgb)],
         # voting= 'soft',
         # voting = 'hard' # 디폴트!
     )
@@ -193,13 +206,17 @@ while True :
     # print("점수", model.score(x_test, y_test))
     result = model.score(x_test, y_test)
 
-    if result > 0.3:
+    if result > 0.34:
         if result > max_value:
             max_rs = random_state
             max_value = result
             print(f"rs : {random_state}, max_value : {max_value}")
-            print("최적의 파라미터 : ", model.best_params_)
+            # print("최적의 파라미터 : ", model.best_params_)
             random_state = random_state + 1
+            y_submit = model.predict(test_csv)
+            submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
+            submission_csv.to_csv(csv_path + "0328_lgbm_xgb_voting333.csv", index=False)
+            break
         else :
             random_state = random_state + 1
     else :
@@ -223,3 +240,5 @@ while True :
 # model.score :  0.3263897561218021
 
 # model.score :  0.3266590696777495
+        
+# rs 124

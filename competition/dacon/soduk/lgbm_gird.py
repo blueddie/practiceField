@@ -100,79 +100,33 @@ for column in x.columns:
 x = x.astype('float32')
 test_csv = test_csv.astype('float32')
 
-random_state = 1
-max_rs = 0
-max_value = 0.2
-while True:
+random_state = 123
 
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.15, random_state=random_state)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.15, random_state=random_state)
 
-    # print(x_train.shape, y_train.shape)
-    # print(y_train.shape, y_test.shape)
-    # print(y_test)
-    # scaler = StandardScaler()
-    # scaler.fit(x_train)
-    # x_train = scaler.transform(x_train)
-    # x_test = scaler.transform(x_test)
-    # test_csv = scaler.transform(test_csv)
-
-    # param_grid = {
-    #     'learning_rate': [0.01, 0.05, 0.001, 0.0001],
-    #     'max_depth': [8, 5, 9, 10, 11, 12],
-    #     # 'reg_lambda': [1, 3, 5],
-    #     'subsample': [0.8, 0.9, 1.0],
-    #     'colsample_bytree': [0.8, 0.9, 1.0],
-    #     'n_estimators': [100, 200, 300, 400],
-    #     'min_child_weight': [16, 32, 64]  # min_child_samples -> min_child_weight로 변경
-    # }          
-
-    # model = GridSearchCV(XGBRegressor(random_state=random_state)
-    #                      , param_grid
-    #                      , cv=2
-    #                      , verbose=1
-    #                      , refit=True
-    #                      , n_jobs=-2
-                        
-    #                      )
-    model = XGBRegressor(colsample_bytree=0.8, 
-                        learning_rate=0.01, 
-                        max_depth=11, 
-                        min_child_weight=64,
-                        n_estimators=400, 
-                        subsample=0.8,
-                        random_state=random_state
-    )
+param_grid = {
+    'learning_rate': [0.01, 0.05, 0.001, 0.1],
+    'max_depth': [8, 5, 9, 10, 11, 12],
+    'reg_lambda': [1, 0],  # 주석 해제
+    'subsample': [0.9, 1.0],
+    'colsample_bytree': [ 0.9, 1.0],
+    'n_estimators': [100, 200, 300, 400],
+    'min_child_weight': [16, 32, 64]  # min_child_samples -> min_child_weight로 변경
+}
 
 
+model = GridSearchCV(LGBMRegressor(random_state=random_state)
+                     , param_grid
+                     , cv=3
+                     , verbose=0
+                     , refit=True
+                     , n_jobs=-2
+                    
+                     )
 
-
-    model.fit(x_train, y_train, eval_set=[(x_test, y_test)] , verbose=0)
-
-    # print("---------------------------------------------------------")
-    # print("최적의 파라미터 : ", model.best_params_)
-    # print('best_score : ', model.best_score_)
-    # print("점수", model.score(x_test, y_test))
-    result = model.score(x_test, y_test)
-
-    if result > 0.3522:
-        if result > max_value:
-            max_rs = random_state
-            max_value = result
-            print(f"rs : {random_state}, max_value : {max_value}")
-            # print("최적의 파라미터 : ", model.best_params_)
-            random_state = random_state + 1
-        else :
-            random_state = random_state + 1
-    else :
-        random_state = random_state + 1
-    
-    
-# best_model = model.best_estimator_
-
-# y_submit = best_model.predict(test_csv)
- #####################################################################################
+model.fit(x_train, y_train)
+print("Best parameters found: ", model.best_params_)
+# result = model.score(x_test, y_test)
 # y_submit = model.predict(test_csv)
-# # y_submit[y_submit < 0] = 0
-
 # submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
-# submission_csv.to_csv(csv_path + "0327_나이변경.csv", index=False)
+# submission_csv.to_csv(csv_path + "0328_lgbm.csv", index=False)

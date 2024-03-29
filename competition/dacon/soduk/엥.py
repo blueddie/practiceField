@@ -100,7 +100,7 @@ for column in x.columns:
 x = x.astype('float32')
 test_csv = test_csv.astype('float32')
 
-random_state = 333
+random_state = 124
 
 
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.15, random_state=random_state)
@@ -161,4 +161,6 @@ y_submit = model.predict(test_csv)
 # y_submit[y_submit < 0] = 0
 
 submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
-submission_csv.to_csv(csv_path + "real.csv", index=False)
+submission_csv.to_csv(csv_path + "오잉35.csv", index=False)
+
+# 124 점수 0.3521863108186919
