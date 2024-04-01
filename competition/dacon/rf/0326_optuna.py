@@ -38,9 +38,9 @@ def objective(trial):
     global best_auc
     
     # 하이퍼파라미터 탐색 공간 정의
-    n_estimators = trial.suggest_int('n_estimators', 100, 600)
+    n_estimators = trial.suggest_int('n_estimators', 100, 700)
     max_depth = trial.suggest_int('max_depth', 4, 21)
-    min_samples_split = trial.suggest_int('min_samples_split', 2, 20)
+    min_samples_split = trial.suggest_int('min_samples_split', 2, 30)
     min_samples_leaf = trial.suggest_int('min_samples_leaf', 1, 20)
     max_features = trial.suggest_categorical('max_features', ['sqrt', 'log2', None])
     bootstrap = trial.suggest_categorical('bootstrap', [True, False])
@@ -72,7 +72,7 @@ def objective(trial):
     return auc
 
 study = optuna.create_study(direction='maximize')
-study.optimize(objective, n_trials=100)
+study.optimize(objective, n_trials=5000)
 
 # 최적의 하이퍼파라미터 및 AUC 출력
 best_params = study.best_params
@@ -84,4 +84,4 @@ for param, value in best_params.items():
     if param in submission_csv.columns:
         submission_csv[param] = value
 
-submission_csv.to_csv(path + "tttt.csv", index=False)
+submission_csv.to_csv(path + "0401madoka2.csv", index=False)
