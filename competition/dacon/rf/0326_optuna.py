@@ -24,7 +24,7 @@ submission_csv = pd.read_csv(path + "sample_submission.csv")
 x = train_csv.drop(['login'], axis=1)
 y = train_csv['login']
 
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.27, random_state=42)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=74752)
 
 scaler = StandardScaler()
 scaler.fit(x_train)
@@ -39,8 +39,8 @@ def objective(trial):
     
     # 하이퍼파라미터 탐색 공간 정의
     n_estimators = trial.suggest_int('n_estimators', 100, 700)
-    max_depth = trial.suggest_int('max_depth', 4, 21)
-    min_samples_split = trial.suggest_int('min_samples_split', 2, 30)
+    max_depth = trial.suggest_int('max_depth', 4, 15)
+    min_samples_split = trial.suggest_int('min_samples_split', 2, 35)
     min_samples_leaf = trial.suggest_int('min_samples_leaf', 1, 20)
     max_features = trial.suggest_categorical('max_features', ['sqrt', 'log2', None])
     bootstrap = trial.suggest_categorical('bootstrap', [True, False])
@@ -84,4 +84,4 @@ for param, value in best_params.items():
     if param in submission_csv.columns:
         submission_csv[param] = value
 
-submission_csv.to_csv(path + "0401madoka2.csv", index=False)
+submission_csv.to_csv(path + "0404_ma.csv", index=False)
