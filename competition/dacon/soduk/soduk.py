@@ -104,6 +104,11 @@ print(pd.value_counts(x['Education_Status']))
 # print(pd.value_counts(x[]))
 # print(pd.value_counts(x[]))
 
+columns_to_drop2 = ['Gains','Losses', 'Dividends']
+x.drop(columns=columns_to_drop2, inplace=True)
+test_csv.drop(columns=columns_to_drop2, inplace=True)
+
+
 non_numeric_x = []
 for col in x.columns:
     if x[col].dtype != 'int64':
@@ -139,7 +144,7 @@ test_csv = test_csv.astype('float32')
 # print(x.dtypes)
 # print(test_csv.dtypes)
 
-random_state = 312
+random_state = 55123
 
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=random_state)
 
@@ -156,22 +161,22 @@ print(x_train.shape, y_train.shape)
 # }
 # TensorFlow GPU 설정
 
-# param_grid = {
+param_grid = {
     
-#     'n_estimators': [100, 200, 300],  # 트리의 개수
-#     'max_depth': [3, 5, 7],              # 트리의 최대 깊이
-#     'learning_rate': [0.01, 0.05, 0.025, 0.0001],# 학습률
-#     'min_child_weight': [1, 3, 5, 7],       # 최소 자식 노드의 가중치 합
-#     'gamma': [0, 0.1, 0.2, 0.3],            # 트리의 리프 노드에서 추가적으로 가중치를 주는 파라미터
-#     'subsample': [0.8, 0.9, 1.0],           # 각 트리에서 사용할 샘플의 비율
-#     'colsample_bytree': [0.8, 0.9, 1.0, 0.7],    # 각 트리에서 사용할 feature의 비율
-#     # 'reg_alpha': [0, 0.1, 0.5, 1],          # L1 정규화 파라미터
-#     # 'reg_lambda': [0, 0.1, 0.5, 1]          # L2 정규화 파라미터
-# }
+    'n_estimators': [100, 200, 300, 400],  # 트리의 개수
+    'max_depth': [3, 5, 7, 8],              # 트리의 최대 깊이
+    'learning_rate': [0.01, 0.05, 0.1],# 학습률
+    'min_child_weight': [1, 3, 5, 7],       # 최소 자식 노드의 가중치 합
+    'gamma': [0, 0.1, 0.2, 0.3],            # 트리의 리프 노드에서 추가적으로 가중치를 주는 파라미터
+    'subsample': [0.8, 0.9, 1.0],           # 각 트리에서 사용할 샘플의 비율
+    'colsample_bytree': [0.8, 0.9, 1.0, 0.7],    # 각 트리에서 사용할 feature의 비율
+    # 'reg_alpha': [0, 0.1, 0.5, 1],          # L1 정규화 파라미터
+    # 'reg_lambda': [0, 0.1, 0.5, 1]          # L2 정규화 파라미터
+}
 
 
 # scaler = StandardScaler()
-scaler = MinMaxScaler()
+scaler = StandardScaler()
 scaler.fit(x_train)
 x_train = scaler.transform(x_train)
 x_test = scaler.transform(x_test)
@@ -184,17 +189,17 @@ test_csv = scaler.transform(test_csv)
 #                      , verbose=1
 #                      , refit=True
 #                      , n_jobs=-2
-param_grid = {
-    'learning_rate': [0.01, 0.05, 0.1, 0.001],
-    'depth': [4, 6, 8],
-    'l2_leaf_reg': [1, 3, 5],
-    'subsample': [0.8, 0.9, 1.0],
-    'colsample_bylevel': [0.8, 0.9, 1.0],
-    'iterations': [100, 200, 300],
-    'border_count': [32, 64, 128]
-}                   
+# param_grid = {
+#     'learning_rate': [0.01, 0.05, 0.1, 0.001],
+#     'depth': [4, 6, 8],
+#     'l2_leaf_reg': [1, 3, 5],
+#     'subsample': [0.8, 0.9, 1.0],
+#     'colsample_bylevel': [0.8, 0.9, 1.0],
+#     'iterations': [100, 200, 300],
+#     'border_count': [32, 64, 128]
+# }                   
 
-model = GridSearchCV(CatBoostRegressor()
+model = GridSearchCV(XGBRegressor()
                      , param_grid
                      , cv=3
                      , verbose=1
@@ -225,7 +230,7 @@ y_submit = model.predict(test_csv)
 y_submit[y_submit < 0] = 0
 
 submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
-submission_csv.to_csv(csv_path + "submitTest2.csv", index=False)
+submission_csv.to_csv(csv_path + "0404_11.csv", index=False)
 
 # 최적의 파라미터 :  {'colsample_bytree': 0.8, 'gamma': 0, 'learning_rate': 0.025, 'max_depth': 7, 'min_child_weight': 7, 'n_estimators': 200, 'subsample': 0.8} xgb
 # 최적의 파라미터 :  {'border_count': 64, 'colsample_bylevel': 0.9, 'depth': 6, 'iterations': 300, 'l2_leaf_reg': 5, 'learning_rate': 0.05, 'subsample': 0.9} catboost

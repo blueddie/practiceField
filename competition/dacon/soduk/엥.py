@@ -100,7 +100,7 @@ for column in x.columns:
 x = x.astype('float32')
 test_csv = test_csv.astype('float32')
 
-random_state = 124
+random_state = 499
 
 
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.15, random_state=random_state)
@@ -141,9 +141,6 @@ model = XGBRegressor(colsample_bytree=0.8,
                     random_state=23
 )
 
-
-
-
 model.fit(x_train, y_train, eval_set=[(x_test, y_test)])
 
 print("---------------------------------------------------------")
@@ -158,9 +155,9 @@ result = model.score(x_test, y_test)
 # y_submit = best_model.predict(test_csv)
  #####################################################################################
 y_submit = model.predict(test_csv)
-# y_submit[y_submit < 0] = 0
+y_submit[y_submit < 0] = 0
 
 submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
-submission_csv.to_csv(csv_path + "오잉35.csv", index=False)
+submission_csv.to_csv(csv_path + "0404_22222.csv", index=False)
 
 # 124 점수 0.3521863108186919

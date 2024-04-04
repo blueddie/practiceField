@@ -114,7 +114,7 @@ while True:
 
 
 
-    scaler = StandardScaler()
+    scaler = MinMaxScaler()
     scaler.fit(x_train)
     x_train = scaler.transform(x_train)
     x_test = scaler.transform(x_test)
@@ -168,11 +168,12 @@ while True:
     result = model.score(x_test, y_test)
     rmse = RMSE(y_test, y_predict)
     print("rmse : ", rmse)
-    if rmse < 525:
+    if rmse < 516:
 
-        y_submit = model.predict(test_csv)
-        submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
-        submission_csv.to_csv(csv_path + "0329_XGB2.csv", index=False)
+        # y_submit = model.predict(test_csv)
+        # y_submit[y_submit < 0] = 0
+        # submission_csv['Income'] = pd.DataFrame(y_submit.reshape(-1,1))
+        # submission_csv.to_csv(csv_path + "0404_XGB2222.csv", index=False)
         print("최종 rmse : ", rmse)
         print("rs : ", random_state)
         break
