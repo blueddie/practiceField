@@ -105,7 +105,7 @@ def RMSE(y_test, y_predict):
     return rmse
 
 
-random_state = 444
+random_state = 713
 max_rs = 0
 max_value = 0.2
 while True:
@@ -168,7 +168,7 @@ while True:
     result = model.score(x_test, y_test)
     rmse = RMSE(y_test, y_predict)
     print("rmse : ", rmse)
-    if rmse < 516:
+    if rmse < 500:
 
         # y_submit = model.predict(test_csv)
         # y_submit[y_submit < 0] = 0
