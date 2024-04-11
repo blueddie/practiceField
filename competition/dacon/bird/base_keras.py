@@ -18,10 +18,10 @@ random.seed(33)
 # Hyperparameter Setting
 CFG = {
     'IMG_SIZE': 224,
-    'EPOCHS': 1000,
+    'EPOCHS': 3,
     'LEARNING_RATE': 1e-4,
     'BATCH_SIZE': 64,
-    'SEED': 41
+    'SEED': 15662
 }
 
 # Seed 고정
@@ -130,4 +130,4 @@ preds = le.inverse_transform(preds)
 # Submission
 submit = pd.read_csv('C:\_data\dacon\\birdClassification\\sample_submission.csv')
 submit['label'] = preds
-submit.to_csv(f'C:\_data\dacon\\birdClassification\\output\\0408_2.csv', index=False)
+submit.to_csv(f'C:\_data\dacon\\birdClassification\\output\\0411_3.csv', index=False)
