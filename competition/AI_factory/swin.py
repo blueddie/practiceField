@@ -151,7 +151,7 @@ EPOCHS = 1000 # 훈련 epoch 지정
 BATCH_SIZE = 4  # batch size 지정
 IMAGE_SIZE = (256, 256) # 이미지 크기 지정
 MODEL_NAME = 'swin' # 모델 이름
-RANDOM_STATE = 66123 # seed 고정
+RANDOM_STATE = 12444 # seed 고정
 INITIAL_EPOCH = 0 # 초기 epoch
 
 # 데이터 위치
@@ -181,8 +181,8 @@ x_tr, x_val = train_test_split(train_meta, test_size=0.2, random_state=RANDOM_ST
 print(len(x_tr), len(x_val))
 
 # train : val 지정 및 generator
-images_train = [os.path.join(IMAGES_PATH, image) for image in x_tr['train_img'] ]
 masks_train = [os.path.join(MASKS_PATH, mask) for mask in x_tr['train_mask'] ]
+images_train = [os.path.join(IMAGES_PATH, image) for image in x_tr['train_img'] ]
 
 images_validation = [os.path.join(IMAGES_PATH, image) for image in x_val['train_img'] ]
 masks_validation = [os.path.join(MASKS_PATH, mask) for mask in x_val['train_mask'] ]
