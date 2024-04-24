@@ -15,4 +15,5 @@ def generate_text(prompt, max_length=50):
 # 텍스트 생성 예시
 prompt = "나는?"
 generated_text = generate_text(prompt, max_length=100)
+# print("Generated Text:", generated_text)
 print("Generated Text:", generated_text)
