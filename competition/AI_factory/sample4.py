@@ -112,7 +112,7 @@ def generator_from_lists(images_path, masks_path, batch_size=32, shuffle = True,
                 
 
 # Unet 모델 정의
-def FCN(nClasses, input_height=128, input_width=128, n_filters = 16, dropout = 0.1, batchnorm = True):
+def FCN(nClasses, input_height=128, input_width=128, n_filters = 26, dropout = 0.1, batchnorm = True):
     
     
     img_input = Input(shape=(input_height,input_width, 3))
@@ -152,6 +152,7 @@ def conv2d_block(input_tensor, n_filters, kernel_size = 3, batchnorm = True):
     return x
 
 def get_unet(nClasses, input_height=256, input_width=256, n_filters = 16, dropout = 0.1, batchnorm = True, n_channels=10):
+    # input_img = Input(shape=(input_height,input_width, n_channels))
     input_img = Input(shape=(input_height,input_width, n_channels))
 
     # contracting path
