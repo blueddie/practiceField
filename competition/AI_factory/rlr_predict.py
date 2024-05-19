@@ -102,6 +102,7 @@ def generator_from_lists(images_path, masks_path, batch_size=32, shuffle = True,
             
             img = fopen_image(img_path)
             mask = fopen_mask(mask_path)
+            
             images.append(img)
             masks.append(mask)
 
