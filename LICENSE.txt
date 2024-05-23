@@ -1,0 +1,9 @@
+The dataset is from: https://ieee-dataport.org/open-access/detecting-damaged-buildings-post-hurricane-satellite-imagery-based-customized
+
+The original source is:
+
+    Quoc Dung Cao (University of Washington)
+    Youngjun Choe (University of Washington)
+
+This dataset is made available under the “Creative Commons Attribution 4.0 International (CC BY 4.0)” license.
+The text of the license is available here: https://creativecommons.org/licenses/by/4.0/

@@ -239,16 +239,21 @@ def solution_model():
         # recurrent_dropout argument (you can alternatively set it to 0),
         # since it has not been implemented in the cuDNN kernel and may
         # result in much longer training times.
+        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True), input_shape=(N_PAST, N_FEATURES)),
+        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True)),
+        tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(N_FEATURES)),
         tf.keras.layers.Dense(N_FEATURES)
     ])
 
     # Code to train and compile the model
-    optimizer =  # YOUR CODE HERE
+    optimizer =  'adam' # YOUR CODE HERE
     model.compile(
         # YOUR CODE HERE
+        optimizer=optimizer, loss='mse'
     )
     model.fit(
         # YOUR CODE HERE
+        train_set, validation_data=valid_set, epochs=20
     )
 
     return model
